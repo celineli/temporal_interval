@@ -1,0 +1,496 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Causal Delay Experiment — v3 (4 conditions)</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Georgia', serif;
+    background: #1a1a1a;
+    color: #e8e4dc;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 28px 16px 60px;
+  }
+  h1 {
+    font-size: 18px; font-weight: normal;
+    letter-spacing: 0.08em; text-transform: uppercase;
+    color: #a09888; margin-bottom: 5px;
+  }
+  .subtitle { font-size: 13px; color: #555; margin-bottom: 26px; letter-spacing: 0.04em; }
+
+  /* ── slider ── */
+  .controls {
+    display: flex; align-items: center; gap: 18px;
+    margin-bottom: 6px; flex-wrap: wrap; justify-content: center;
+  }
+  .ctrl-label { font-size: 13px; color: #888; letter-spacing: 0.04em; }
+  input[type=range] {
+    -webkit-appearance: none;
+    width: 280px; height: 4px;
+    background: #333; border-radius: 2px; outline: none; cursor: pointer;
+  }
+  input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 16px; height: 16px;
+    border-radius: 50%; background: #c8a86a; cursor: pointer;
+  }
+  .delay-readout { font-size: 15px; font-weight: bold; color: #c8a86a; min-width: 72px; }
+  .slider-ticks {
+    display: flex; justify-content: space-between;
+    width: 280px; font-size: 10px; color: #555;
+    margin-bottom: 6px; padding: 0 2px; letter-spacing: 0.03em;
+  }
+  .delay-note {
+    font-size: 12px; color: #555; margin-bottom: 24px;
+    max-width: 540px; text-align: center; line-height: 1.6;
+  }
+  .delay-note em { color: #9a8a6a; font-style: normal; }
+
+  /* ── buttons ── */
+  .btn-row {
+    display: flex; gap: 10px; margin-bottom: 28px;
+    flex-wrap: wrap; justify-content: center;
+  }
+  button {
+    background: transparent; border: 1px solid #444;
+    color: #ccc; font-family: 'Georgia', serif; font-size: 12px;
+    padding: 7px 14px; border-radius: 4px; cursor: pointer;
+    letter-spacing: 0.03em; transition: border-color 0.2s, color 0.2s;
+  }
+  button:hover  { border-color: #c8a86a; color: #c8a86a; }
+  button.active { border-color: #c8a86a; color: #c8a86a; }
+
+  /* ── 2×2 grid ── */
+  .grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px 22px;
+    width: 100%; max-width: 900px;
+  }
+  .section-heading {
+    grid-column: 1 / -1;
+    font-size: 11px; letter-spacing: 0.10em;
+    text-transform: uppercase; color: #555;
+    border-bottom: 1px solid #2a2a2a;
+    padding-bottom: 5px; margin-top: 14px;
+  }
+  .panel { display: flex; flex-direction: column; }
+  .panel-label {
+    font-size: 11px; color: #666; text-align: center;
+    margin-bottom: 6px; letter-spacing: 0.05em; text-transform: uppercase;
+    line-height: 1.5;
+  }
+  .cond-num {
+    display: inline-block; font-size: 10px; color: #9a7a3a;
+    margin-bottom: 2px; letter-spacing: 0.04em;
+  }
+  canvas {
+    display: block; width: 100%;
+    border: 1px solid #2a2a2a; border-radius: 5px; background: #0e0e0f;
+  }
+  .status {
+    font-size: 11px; color: #555; text-align: center;
+    margin-top: 5px; min-height: 16px; letter-spacing: 0.03em;
+  }
+
+  .legend {
+    margin-top: 32px; font-size: 11px; color: #555;
+    max-width: 740px; text-align: center; line-height: 2.0;
+  }
+  .legend strong { color: #888; font-weight: normal; }
+</style>
+</head>
+<body>
+
+<h1>Causal Delay Experiment</h1>
+<p class="subtitle">v3 — 4 conditions: physical→physical (with/without face) & physical→mental (toward/away)</p>
+
+<div class="controls">
+  <span class="ctrl-label">Delay between hit and effect:</span>
+  <input type="range" id="delaySlider" min="-1000" max="1000" step="10" value="400">
+  <span class="delay-readout" id="delayVal">+400 ms</span>
+</div>
+<div class="slider-ticks">
+  <span>−1000ms</span><span>−500ms</span><span>0</span><span>+500ms</span><span>+1000ms</span>
+</div>
+<div class="delay-note">
+  <em>Negative delay</em> = effect fires before the collision &nbsp;|&nbsp;
+  <em>0 ms</em> = simultaneous &nbsp;|&nbsp;
+  <em>Positive</em> = effect follows collision by that interval
+</div>
+
+<div class="btn-row">
+  <button id="btnAll" class="active">▶ Run all</button>
+  <button id="btn1">Cond 1</button>
+  <button id="btn2">Cond 2</button>
+  <button id="btn3">Cond 3</button>
+  <button id="btn4">Cond 4</button>
+</div>
+
+<div class="grid">
+
+  <!-- ── Physical cause → Physical effect ── -->
+  <div class="section-heading">Physical cause → Physical effect &nbsp;(patient ball rolls away)</div>
+
+  <div class="panel">
+    <div class="panel-label">
+      <span class="cond-num">Condition 1</span><br>
+      Object → Object<br>
+      <span style="color:#4a4a4a;font-size:10px;letter-spacing:0.03em;text-transform:none">
+        No face on either ball — pure physical interaction
+      </span>
+    </div>
+    <canvas id="c1" height="190"></canvas>
+    <div class="status" id="st1">Press Run all to start.</div>
+  </div>
+
+  <div class="panel">
+    <div class="panel-label">
+      <span class="cond-num">Condition 2</span><br>
+      Object → Agent (rolls away physically)<br>
+      <span style="color:#4a4a4a;font-size:10px;letter-spacing:0.03em;text-transform:none">
+        Patient has face; whole ball (face + gaze) rotates as it rolls
+      </span>
+    </div>
+    <canvas id="c2" height="190"></canvas>
+    <div class="status" id="st2">Press Run all to start.</div>
+  </div>
+
+  <!-- ── Physical cause → Mental effect ── -->
+  <div class="section-heading">Physical cause → Mental effect &nbsp;(patient stays still, expression changes)</div>
+
+  <div class="panel">
+    <div class="panel-label">
+      <span class="cond-num">Condition 3</span><br>
+      Object → Agent (happy → sad) &nbsp;👁 toward cause<br>
+      <span style="color:#4a4a4a;font-size:10px;letter-spacing:0.03em;text-transform:none">
+        Patient has visual access — eyes look left toward approaching ball
+      </span>
+    </div>
+    <canvas id="c3" height="190"></canvas>
+    <div class="status" id="st3">Press Run all to start.</div>
+  </div>
+
+  <div class="panel">
+    <div class="panel-label">
+      <span class="cond-num">Condition 4</span><br>
+      Object → Agent (happy → sad) &nbsp;👁 away from cause<br>
+      <span style="color:#4a4a4a;font-size:10px;letter-spacing:0.03em;text-transform:none">
+        Patient has no visual access — eyes look right, away from ball
+      </span>
+    </div>
+    <canvas id="c4" height="190"></canvas>
+    <div class="status" id="st4">Press Run all to start.</div>
+  </div>
+
+</div>
+
+<p class="legend">
+  <strong>Cond 1 (object→object):</strong> neither ball has a face — pure billiard-ball causation.<br>
+  <strong>Cond 2 (object→agent, physical):</strong> patient has a face but rolls away as a physical object; face rotates with the ball.<br>
+  <strong>Cond 3 (object→agent, mental, toward):</strong> patient stays still, expression flips; eyes directed at the cause ball (visual access).<br>
+  <strong>Cond 4 (object→agent, mental, away):</strong> same as Cond 3 but eyes averted — no visual access to the cause.
+</p>
+
+<script>
+/* ══════════════════════════════════════════════════════════════
+   DELAY SLIDER
+══════════════════════════════════════════════════════════════ */
+const delaySlider = document.getElementById('delaySlider');
+const delayValEl  = document.getElementById('delayVal');
+function formatDelay(v) {
+  return v === 0 ? '0 ms' : (v > 0 ? '+' : '') + v + ' ms';
+}
+delaySlider.oninput = () => delayValEl.textContent = formatDelay(+delaySlider.value);
+function getDelay() { return +delaySlider.value; }
+
+/* ══════════════════════════════════════════════════════════════
+   DRAWING PRIMITIVES
+══════════════════════════════════════════════════════════════ */
+
+function drawBall(ctx, x, y, R, color) {
+  ctx.beginPath(); ctx.arc(x, y, R, 0, Math.PI * 2);
+  ctx.fillStyle = color; ctx.fill();
+  ctx.strokeStyle = '#777'; ctx.lineWidth = 1.4; ctx.stroke();
+}
+
+/* Eye: sclera ring with offset pupil.
+   cx, cy    — centre in current (possibly rotated) coordinate space
+   scleraR   — radius of white sclera circle
+   gazeDir   — −1 = look left, +1 = look right  (in local space) */
+function drawEye(ctx, cx, cy, scleraR, gazeDir) {
+  const pupilR   = scleraR * 0.48;
+  const pupilOff = scleraR * 0.36 * gazeDir;
+
+  ctx.beginPath(); ctx.arc(cx, cy, scleraR, 0, Math.PI * 2);
+  ctx.fillStyle = '#e8e0cc'; ctx.fill();
+  ctx.strokeStyle = '#2a1e0a'; ctx.lineWidth = 1.2; ctx.stroke();
+
+  ctx.beginPath(); ctx.arc(cx + pupilOff, cy, pupilR, 0, Math.PI * 2);
+  ctx.fillStyle = '#1a0e00'; ctx.fill();
+
+  ctx.beginPath();
+  ctx.arc(cx + pupilOff - pupilR * 0.28, cy - pupilR * 0.28, pupilR * 0.22, 0, Math.PI * 2);
+  ctx.fillStyle = 'rgba(255,255,255,0.7)'; ctx.fill();
+}
+
+/* Face upright — used for mental condition (stays still).
+   expression : 'happy' | 'sad'
+   gazeDir    : −1 toward cause (left) | +1 away (right) | null = no eyes (faceless) */
+function drawFaceUpright(ctx, bx, by, R, expression, gazeDir) {
+  const scleraR = R * 0.22;
+  const eyeY    = by - R * 0.22;
+  const eyeOff  = R * 0.34;
+
+  ctx.save();
+  ctx.beginPath(); ctx.arc(bx, by, R - 0.5, 0, Math.PI * 2); ctx.clip();
+
+  /* Eyes (with sclera gaze cue) */
+  drawEye(ctx, bx - eyeOff, eyeY, scleraR, gazeDir);
+  drawEye(ctx, bx + eyeOff, eyeY, scleraR, gazeDir);
+
+  /* Nose */
+  ctx.strokeStyle = '#2a1e0a'; ctx.lineWidth = 1.5; ctx.lineCap = 'round';
+  ctx.beginPath();
+  ctx.moveTo(bx - R * 0.08, eyeY + R * 0.22);
+  ctx.lineTo(bx,             eyeY + R * 0.36);
+  ctx.lineTo(bx + R * 0.08, eyeY + R * 0.22);
+  ctx.stroke();
+
+  /* Mouth */
+  ctx.beginPath();
+  const mR = R * 0.28;
+  if (expression === 'happy') {
+    ctx.arc(bx, by + R * 0.20, mR, Math.PI * 0.12, Math.PI * 0.88);
+  } else {
+    ctx.arc(bx, by + R * 0.62, mR, Math.PI * 1.12, Math.PI * 1.88);
+  }
+  ctx.stroke();
+
+  ctx.restore();
+}
+
+/* Face rotated — used for physical patient (face spins with rolling ball).
+   angle   : cumulative rotation in radians
+   gazeDir : −1 | +1 in LOCAL (pre-rotation) space
+   hasFace : false = no face drawn (Condition 1 patient) */
+function drawFaceRotated(ctx, bx, by, R, angle, gazeDir, hasFace) {
+  if (!hasFace) return;
+
+  ctx.save();
+  ctx.beginPath(); ctx.arc(bx, by, R - 0.5, 0, Math.PI * 2); ctx.clip();
+  ctx.translate(bx, by);
+  ctx.rotate(angle);
+
+  const scleraR = R * 0.22;
+  const eyeY    = -R * 0.22;
+  const eyeOff  = R * 0.34;
+
+  /* Eyes — gazeDir in local space */
+  drawEye(ctx, -eyeOff, eyeY, scleraR, gazeDir);
+  drawEye(ctx,  eyeOff, eyeY, scleraR, gazeDir);
+
+  /* Nose */
+  ctx.strokeStyle = '#2a1e0a'; ctx.lineWidth = 1.5; ctx.lineCap = 'round';
+  ctx.beginPath();
+  ctx.moveTo(-R * 0.08, eyeY + R * 0.22);
+  ctx.lineTo(0,          eyeY + R * 0.36);
+  ctx.lineTo( R * 0.08, eyeY + R * 0.22);
+  ctx.stroke();
+
+  /* Mouth — always happy (physical rolling object) */
+  ctx.beginPath();
+  ctx.arc(0, R * 0.20, R * 0.28, Math.PI * 0.12, Math.PI * 0.88);
+  ctx.stroke();
+
+  ctx.restore();
+}
+
+/* ══════════════════════════════════════════════════════════════
+   RUNNER FACTORY
+
+   condType  : 'phys-no-face'   — Cond 1: patient has no face, rolls away
+               'phys-face'      — Cond 2: patient has face + gaze, rolls away
+               'mental-toward'  — Cond 3: patient stays, happy→sad, eyes left
+               'mental-away'    — Cond 4: patient stays, happy→sad, eyes right
+══════════════════════════════════════════════════════════════ */
+function makeRunner(canvasEl, statusEl, condType) {
+  const H = 190;
+  const R = 24;
+
+  function resize() {
+    canvasEl.width  = canvasEl.offsetWidth || 340;
+    canvasEl.height = H;
+  }
+  resize();
+
+  const ctx = canvasEl.getContext('2d');
+
+  /* Colour scheme:
+     - Cause ball (always no face): steel blue
+     - Patient in Cond 1 (no face): muted slate — visually distinct from cause
+       but clearly "just an object"
+     - Patient in Conds 2–4 (has face): warm amber */
+  const COL_CAUSE        = '#5b7fa0';
+  const COL_PAT_NFACE    = '#c8a878';   /* Cond 1: faceless patient — same amber as others */
+  const COL_PAT_FACE     = '#c8a878';   /* Conds 2–4: patient with face */
+  const BG               = '#0e0e0f';
+
+  /* Derived properties */
+  const isPhysical = condType === 'phys-no-face' || condType === 'phys-face';
+  const hasFace    = condType !== 'phys-no-face';
+  const gazeDir    = condType === 'mental-toward' ? -1
+                   : condType === 'mental-away'   ? +1
+                   : condType === 'phys-face'     ? +1   /* faces right = away from cause */
+                   : 0;
+  const patColor   = hasFace ? COL_PAT_FACE : COL_PAT_NFACE;
+
+  function W()           { return canvasEl.width; }
+  function agentStartX() { return W() * 0.70; }
+  function causeStartX() { return W() * 0.12; }
+  function causeStopX()  { return agentStartX() - R * 2 - 3; }
+  const Y = H * 0.46;
+  const CAUSE_SPEED = 2.6;
+
+  function framesUntilHit() {
+    return Math.ceil((causeStopX() - causeStartX()) / CAUSE_SPEED);
+  }
+
+  let state        = 'idle';
+  let causeX       = 0;
+  let agentRollX   = 0;
+  let agentVelX    = 0;
+  let rollAngle    = 0;
+  let currentFrame = 0;
+  let effectFrame  = 0;
+  let expr         = 'happy';
+  let animId       = null;
+
+  function labelText(x, text) {
+    ctx.fillStyle = '#444'; ctx.font = '10px Georgia,serif'; ctx.textAlign = 'center';
+    ctx.fillText(text, x, Y + R + 14);
+  }
+
+  function drawScene() {
+    ctx.clearRect(0, 0, W(), H);
+    ctx.fillStyle = BG; ctx.fillRect(0, 0, W(), H);
+
+    /* Cause ball — always no face */
+    drawBall(ctx, causeX, Y, R, COL_CAUSE);
+    labelText(causeX, 'cause');
+
+    if (isPhysical) {
+      /* Patient rolls away */
+      drawBall(ctx, agentRollX, Y, R, patColor);
+      drawFaceRotated(ctx, agentRollX, Y, R, rollAngle, gazeDir, hasFace);
+      labelText(agentRollX, 'patient');
+    } else {
+      /* Patient stays still; expression may change */
+      const ax = agentStartX();
+      drawBall(ctx, ax, Y, R, patColor);
+      drawFaceUpright(ctx, ax, Y, R, expr, gazeDir);
+      labelText(ax, 'patient');
+    }
+  }
+
+  function tick() {
+    currentFrame++;
+
+    /* Move cause ball */
+    if (causeX < causeStopX()) {
+      causeX += CAUSE_SPEED;
+      if (causeX >= causeStopX()) {
+        causeX = causeStopX();
+        if (state === 'approaching') { state = 'hit'; statusEl.textContent = 'Hit!'; }
+      }
+    }
+
+    /* Trigger effect at effectFrame */
+    if ((state === 'approaching' || state === 'hit') && currentFrame >= effectFrame) {
+      const d   = getDelay();
+      const tag = d < 0 ? ' (' + d + ' ms before hit)'
+                : d === 0 ? ' (simultaneous)'
+                : ' (+' + d + ' ms)';
+
+      if (isPhysical) {
+        agentVelX = CAUSE_SPEED * 1.15;
+        state     = 'rolling';
+        statusEl.textContent = 'Rolls away' + tag;
+      } else {
+        expr  = 'sad';
+        state = 'expressed';
+        statusEl.textContent = 'Expression changes' + tag;
+      }
+    }
+
+    if (state === 'rolling') {
+      agentRollX += agentVelX;
+      rollAngle  += agentVelX / R;
+      if (agentRollX > W() + R + 10) {
+        state = 'done'; statusEl.textContent = 'Done.';
+        cancelAnimationFrame(animId); drawScene(); return;
+      }
+    } else if (state === 'expressed') {
+      if (currentFrame > effectFrame + 60 * 1.6) {
+        state = 'done'; statusEl.textContent = 'Done.';
+        cancelAnimationFrame(animId); drawScene(); return;
+      }
+    }
+
+    drawScene();
+    animId = requestAnimationFrame(tick);
+  }
+
+  return {
+    run() {
+      if (animId) cancelAnimationFrame(animId);
+      resize();
+
+      const FPS   = 60;
+      const d     = getDelay();
+      const hitAt = framesUntilHit();
+      effectFrame  = Math.max(1, hitAt + Math.round(d / (1000 / FPS)));
+      state        = 'approaching';
+      causeX       = causeStartX();
+      agentRollX   = agentStartX();
+      agentVelX    = 0;
+      rollAngle    = 0;
+      expr         = 'happy';
+      currentFrame = 0;
+
+      statusEl.textContent = d < 0
+        ? 'Approaching — effect ' + Math.abs(d) + ' ms before hit…'
+        : 'Cause ball approaching…';
+
+      drawScene();
+      animId = requestAnimationFrame(tick);
+    }
+  };
+}
+
+/* ══════════════════════════════════════════════════════════════
+   INIT
+══════════════════════════════════════════════════════════════ */
+window.addEventListener('load', () => {
+  const r1 = makeRunner(document.getElementById('c1'), document.getElementById('st1'), 'phys-no-face');
+  const r2 = makeRunner(document.getElementById('c2'), document.getElementById('st2'), 'phys-face');
+  const r3 = makeRunner(document.getElementById('c3'), document.getElementById('st3'), 'mental-toward');
+  const r4 = makeRunner(document.getElementById('c4'), document.getElementById('st4'), 'mental-away');
+
+  const all = [r1, r2, r3, r4];
+
+  document.getElementById('btnAll').onclick = () => all.forEach(r => r.run());
+  document.getElementById('btn1').onclick   = () => r1.run();
+  document.getElementById('btn2').onclick   = () => r2.run();
+  document.getElementById('btn3').onclick   = () => r3.run();
+  document.getElementById('btn4').onclick   = () => r4.run();
+
+  all.forEach(r => r.run());
+});
+</script>
+</body>
+</html>
