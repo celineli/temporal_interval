@@ -1,0 +1,864 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Causal Delay — Control Conditions (scrambled face / mouth-only)</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Georgia', serif;
+    background: #f4f1ec; color: #333;
+    min-height: 100vh;
+    display: flex; flex-direction: column; align-items: center;
+    padding: 28px 16px 70px;
+  }
+  h1 { font-size: 18px; font-weight: normal; letter-spacing: 0.08em;
+       text-transform: uppercase; color: #6a5a40; margin-bottom: 5px; }
+  .subtitle { font-size: 13px; color: #999; margin-bottom: 24px; letter-spacing: 0.04em; text-align:center; max-width:640px; }
+
+  /* ── Sticky delay control bar ── */
+  #delayBar {
+    position: sticky; top: 0; z-index: 50;
+    width: 100%; max-width: 1040px;
+    background: #f4f1ec; padding: 14px 18px;
+    border: 1px solid #ddd6c8; border-radius: 8px;
+    margin-bottom: 24px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.04);
+  }
+  .controls { display: flex; align-items: center; gap: 18px;
+    justify-content: center; flex-wrap: wrap; }
+  .ctrl-label { font-size: 13px; color: #777; letter-spacing: 0.04em; }
+  input[type=range] { -webkit-appearance: none; width: 320px; height: 4px;
+    background: #ddd6c8; border-radius: 2px; outline: none; cursor: pointer; }
+  input[type=range]::-webkit-slider-thumb { -webkit-appearance: none;
+    width: 18px; height: 18px; border-radius: 50%; background: #b8935a; cursor: pointer; }
+  .delay-readout { font-size: 16px; font-weight: bold; color: #b8935a; min-width: 76px; }
+  .slider-ticks { display: flex; justify-content: space-between; width: 320px;
+    font-size: 10px; color: #aaa; margin: 4px auto 0; }
+  .delay-note { font-size: 11px; color: #aaa; text-align: center; margin-top: 6px; }
+  .delay-note em { color: #b8935a; font-style: normal; }
+
+  /* ── Grid ── */
+  .grid { width: 100%; max-width: 1040px; }
+  .section-heading { font-size: 11px; letter-spacing: 0.10em; text-transform: uppercase;
+    color: #aaa; border-bottom: 1px solid #e4ddd0; padding-bottom: 6px; margin: 22px 0 14px; }
+  .row { display: flex; flex-direction: column; gap: 24px; align-items: center; }
+  .panel { width: 100%; max-width: 760px; position: relative;
+    display: flex; flex-direction: column;
+    background: #fff; border: 1px solid #e8e1d4; border-radius: 10px; padding: 18px; }
+  .panel-label { font-size: 12px; color: #888; text-align: center;
+    margin-bottom: 10px; letter-spacing: 0.04em; text-transform: uppercase; line-height: 1.6; }
+  .cond-num { display: inline-block; font-size: 11px; color: #b8935a; margin-bottom: 2px; font-weight: bold; }
+  .sub { color: #bbb; font-size: 10px; text-transform: none; display: block; margin-top: 2px; }
+  canvas { display: block; width: 100%; height: 320px;
+    border: 1px solid #eee; border-radius: 6px; background: #fafafa; }
+
+  .panel-controls { display: flex; align-items: center; justify-content: center;
+    gap: 14px; margin-top: 12px; }
+  .loop-toggle {
+    display: flex; align-items: center; gap: 8px;
+    font-size: 12px; color: #888; cursor: pointer; user-select: none;
+  }
+  .loop-toggle input { width: 15px; height: 15px; accent-color: #b8935a; cursor: pointer; }
+  .status { font-size: 11px; color: #bbb; text-align: center;
+    margin-top: 6px; min-height: 16px; letter-spacing: 0.02em; }
+  .replay-btn {
+    background: transparent; border: 1px solid #ddd6c8; color: #999;
+    font-family: 'Georgia', serif; font-size: 11px; padding: 5px 14px;
+    border-radius: 4px; cursor: pointer; letter-spacing: 0.03em;
+    transition: border-color 0.15s, color 0.15s;
+  }
+  .replay-btn:hover { border-color: #b8935a; color: #b8935a; }
+
+  .legend { margin-top: 30px; font-size: 11px; color: #aaa;
+    max-width: 1000px; text-align: center; line-height: 2.0; }
+  .legend strong { color: #888; font-weight: normal; }
+</style>
+</head>
+<body>
+
+<h1>Control Conditions</h1>
+<p class="subtitle">
+  Condition 4 — scrambled-face physical (control for Cond 1 vs Cond 2 comparison) &nbsp;|&nbsp;
+  Condition 5 — mouth-only mental (control for whether a full face is needed for the mental-effect tolerance) &nbsp;|&nbsp;
+  Condition 6 — explosion → distant agent's surprise (no-contact mental effect via a separate triggering event)
+</p>
+
+<!-- ══════════════════════════════════════════════
+     STICKY DELAY BAR
+══════════════════════════════════════════════ -->
+<div id="delayBar">
+  <div class="controls">
+    <span class="ctrl-label">Delay between contact and effect:</span>
+    <input type="range" id="delaySlider" min="-1000" max="1000" step="10" value="300">
+    <span class="delay-readout" id="delayVal">+300 ms</span>
+  </div>
+  <div class="slider-ticks">
+    <span>−1000ms</span><span>−500ms</span><span>0</span><span>+500ms</span><span>+1000ms</span>
+  </div>
+  <div class="delay-note">
+    <em>Negative</em> = effect before contact &nbsp;|&nbsp;
+    <em>0 ms</em> = simultaneous &nbsp;|&nbsp;
+    <em>Positive</em> = effect after contact
+  </div>
+</div>
+
+<div class="grid">
+  <div class="section-heading">New control conditions</div>
+  <div class="row">
+
+    <!-- Condition 4 — scrambled face, physical (slides away) -->
+    <div class="panel">
+      <div class="panel-label">
+        <span class="cond-num">Condition 4</span><br>
+        Scrambled-face physical<br>
+        <span class="sub">Same mechanic as Cond 1 (slides away) — patient has face PARTS, but jumbled / non-face-like arrangement</span>
+      </div>
+      <canvas id="c4"></canvas>
+      <div class="panel-controls">
+        <label class="loop-toggle"><input type="checkbox" id="loop4" checked> Loop</label>
+        <button class="replay-btn" id="replay4">Replay</button>
+      </div>
+      <div class="status" id="st4"></div>
+    </div>
+
+    <!-- Condition 5 — mouth-only, mental (stays still) -->
+    <div class="panel">
+      <div class="panel-label">
+        <span class="cond-num">Condition 5</span><br>
+        Mouth-only mental<br>
+        <span class="sub">Same mechanic as Cond 2 (stays still, expression changes) — only a large, salient mouth, no eyes/nose</span>
+      </div>
+      <canvas id="c5"></canvas>
+      <div class="panel-controls">
+        <label class="loop-toggle"><input type="checkbox" id="loop5" checked> Loop</label>
+        <button class="replay-btn" id="replay5">Replay</button>
+      </div>
+      <div class="status" id="st5"></div>
+    </div>
+
+    <!-- Condition 6 — explosion → distant agent surprise -->
+    <div class="panel">
+      <div class="panel-label">
+        <span class="cond-num">Condition 6</span><br>
+        Explosion → agent surprise<br>
+        <span class="sub">Block A hits Block B → Block B explodes → Agent C (eyes toward the explosion, standing apart, no contact) changes from happy to surprised</span>
+      </div>
+      <canvas id="c6"></canvas>
+      <div class="panel-controls">
+        <label class="loop-toggle"><input type="checkbox" id="loop6" checked> Loop</label>
+        <button class="replay-btn" id="replay6">Replay</button>
+      </div>
+      <div class="status" id="st6"></div>
+    </div>
+
+    <!-- Condition 7 — sleep to awake (closed eyes → open eyes looking toward cause) -->
+    <div class="panel">
+      <div class="panel-label">
+        <span class="cond-num">Condition 7</span><br>
+        Sleep → awake (eyes open toward cause)<br>
+        <span class="sub">Same mechanic as Cond 5 — blue ball approaches, yellow ball stays still. Eyes change from closed (asleep) to open, gaze directed toward the blue ball. Nose and neutral mouth throughout.</span>
+      </div>
+      <canvas id="c7"></canvas>
+      <div class="panel-controls">
+        <label class="loop-toggle"><input type="checkbox" id="loop7" checked> Loop</label>
+        <button class="replay-btn" id="replay7">Replay</button>
+      </div>
+      <div class="status" id="st7"></div>
+    </div>
+
+  </div>
+</div>
+
+<p class="legend">
+  <strong>Logic:</strong> if temporal contiguity tolerance follows
+  Cond 1 (physical launch) &gt; Cond 3 (color change) &gt; Cond 2 (emotional change),
+  these conditions test <em>why</em>. &nbsp;
+  <strong>Cond 4</strong> asks whether face parts without a coherent gestalt change delay tolerance relative to Cond 1. &nbsp;
+  <strong>Cond 5</strong> asks whether mouth alone reproduces Cond 2 mental-effect tolerance. &nbsp;
+  <strong>Cond 6</strong> separates contact from cause: Agent C is surprised by an explosion it didn't directly receive. &nbsp;
+  <strong>Cond 7</strong> tests whether the specific valence/emotion of the change matters: eyes opening (sleep→awake) is a state change that implies awareness of the cause, but is neither positive nor negative — isolating the role of emotional content vs. mere attentional state change.
+</p>
+
+<script>
+'use strict';
+
+/* ══════════════════════════════════════════════════════
+   DELAY SLIDER (shared)
+══════════════════════════════════════════════════════ */
+const delaySlider = document.getElementById('delaySlider');
+const delayValEl  = document.getElementById('delayVal');
+function fmtDelay(v){ return v===0?'0 ms':(v>0?'+':'')+v+' ms'; }
+delaySlider.oninput = ()=> delayValEl.textContent = fmtDelay(+delaySlider.value);
+function getDelay(){ return +delaySlider.value; }
+
+/* ══════════════════════════════════════════════════════
+   DRAWING PRIMITIVES
+══════════════════════════════════════════════════════ */
+function drawBall(ctx, x, y, r, col){
+  ctx.fillStyle = col;
+  ctx.strokeStyle = col;
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.arc(x, y, r, 0, Math.PI*2);
+  ctx.fill();
+  ctx.stroke();
+}
+
+/* Single eye: sclera ring + pupil (no gaze direction needed here — fixed forward) */
+function drawEyeSimple(ctx, cx, cy, scR){
+  ctx.beginPath(); ctx.arc(cx, cy, scR, 0, Math.PI*2);
+  ctx.fillStyle='#fff'; ctx.fill();
+  ctx.strokeStyle='#444'; ctx.lineWidth=1.0; ctx.stroke();
+  ctx.beginPath(); ctx.arc(cx, cy, scR*0.48, 0, Math.PI*2);
+  ctx.fillStyle='#222'; ctx.fill();
+  ctx.beginPath(); ctx.arc(cx-scR*0.13, cy-scR*0.13, scR*0.10, 0, Math.PI*2);
+  ctx.fillStyle='rgba(255,255,255,0.85)'; ctx.fill();
+}
+
+/* Nose — small V shape, can be rotated for the scrambled version */
+function drawNose(ctx, cx, cy, r, rot){
+  ctx.save();
+  ctx.translate(cx, cy);
+  ctx.rotate(rot||0);
+  ctx.strokeStyle='#444'; ctx.lineWidth=1.4; ctx.lineCap='round';
+  ctx.beginPath();
+  ctx.moveTo(-r*0.08, 0);
+  ctx.lineTo(0, r*0.14);
+  ctx.lineTo(r*0.08, 0);
+  ctx.stroke();
+  ctx.restore();
+}
+
+/* Mouth — 'happy' (smile arc), 'sad' (frown arc), or 'surprised' (open oval),
+   with adjustable size & rotation */
+function drawMouth(ctx, cx, cy, r, expr, rot){
+  ctx.save();
+  ctx.translate(cx, cy);
+  ctx.rotate(rot||0);
+  ctx.strokeStyle='#444'; ctx.lineWidth=1.6; ctx.lineCap='round';
+  if(expr==='surprised'){
+    /* Open oval mouth — filled dark interior + outline, classic "O" shape */
+    ctx.beginPath();
+    ctx.ellipse(0, r*0.18, r*0.55, r*0.72, 0, 0, Math.PI*2);
+    ctx.fillStyle='#2a1810'; ctx.fill();
+    ctx.stroke();
+  } else {
+    ctx.beginPath();
+    if(expr==='happy') ctx.arc(0, 0, r, Math.PI*0.12, Math.PI*0.88);
+    else                ctx.arc(0, r*0.42, r, Math.PI*1.12, Math.PI*1.88);
+    ctx.stroke();
+  }
+  ctx.restore();
+}
+
+/* ══════════════════════════════════════════════════════
+   FACE VARIANT 1 — normal upright face (for reference, not used standalone here)
+   Kept for visual parity with the canonical Cond 2 face proportions.
+══════════════════════════════════════════════════════ */
+function drawFaceNormal(ctx, bx, by, r, expr){
+  const scR=r*0.22, ey=by-r*0.22, eo=r*0.34;
+  ctx.save();
+  ctx.beginPath(); ctx.arc(bx,by,r-0.5,0,Math.PI*2); ctx.clip();
+  drawEyeSimple(ctx, bx-eo, ey, scR);
+  drawEyeSimple(ctx, bx+eo, ey, scR);
+  drawNose(ctx, bx, ey+r*0.30, r);
+  drawMouth(ctx, bx, by+r*0.30, r*0.28, expr);
+  ctx.restore();
+}
+
+/* ══════════════════════════════════════════════════════
+   FACE VARIANT 2 — SCRAMBLED FACE
+   Same components (2 eyes, nose, mouth) as the normal face, but placed
+   in non-canonical, jumbled positions/orientations so they do NOT read
+   as a coherent face gestalt. Positions are fixed (not randomized per
+   run) so the stimulus is consistent across trials.
+══════════════════════════════════════════════════════ */
+function drawFaceScrambled(ctx, bx, by, r){
+  const scR = r*0.20;
+  ctx.save();
+  ctx.beginPath(); ctx.arc(bx,by,r-0.5,0,Math.PI*2); ctx.clip();
+
+  /* Eye A — placed low and off-centre (where a mouth would normally sit) */
+  drawEyeSimple(ctx, bx - r*0.15, by + r*0.38, scR*0.85);
+
+  /* Eye B — placed near the top, off to one side, slightly rotated feel via offset */
+  drawEyeSimple(ctx, bx + r*0.30, by - r*0.42, scR*1.05);
+
+  /* Nose — placed sideways on the left, rotated 90° so it points horizontally */
+  drawNose(ctx, bx - r*0.42, by - r*0.02, r*1.1, Math.PI/2);
+
+  /* Mouth — small, placed upper-right area, rotated, where an eye would normally be */
+  drawMouth(ctx, bx + r*0.05, by - r*0.05, r*0.18, 'happy', Math.PI*0.65);
+
+  ctx.restore();
+}
+
+/* ══════════════════════════════════════════════════════
+   FACE VARIANT 3 — MOUTH-ONLY FACE
+   No eyes, no nose. A single large, salient mouth centred on the ball.
+══════════════════════════════════════════════════════ */
+function drawFaceMouthOnly(ctx, bx, by, r, expr){
+  ctx.save();
+  ctx.beginPath(); ctx.arc(bx,by,r-0.5,0,Math.PI*2); ctx.clip();
+  ctx.lineWidth = 3.2;   /* thicker than normal mouth for extra salience */
+  drawMouth(ctx, bx, by, r*0.50, expr);  /* much larger radius than normal (0.28r) */
+  ctx.restore();
+}
+
+/* ══════════════════════════════════════════════════════
+   GAZE EYE — sclera ring + offset pupil, used for Agent C.
+   gazeDir: -1 = pupil shifted left, +1 = shifted right.
+   wide: true widens the sclera (used for the surprised expression).
+══════════════════════════════════════════════════════ */
+function drawEyeGaze(ctx, cx, cy, scR, gazeDir, wide){
+  const effR = wide ? scR*1.30 : scR;
+  const pR   = effR*0.46, pOff = effR*0.34*gazeDir;
+  ctx.beginPath(); ctx.arc(cx, cy, effR, 0, Math.PI*2);
+  ctx.fillStyle='#fff'; ctx.fill();
+  ctx.strokeStyle='#444'; ctx.lineWidth=1.0; ctx.stroke();
+  ctx.beginPath(); ctx.arc(cx+pOff, cy, pR, 0, Math.PI*2);
+  ctx.fillStyle='#1a0e00'; ctx.fill();
+  ctx.beginPath(); ctx.arc(cx+pOff-pR*0.28, cy-pR*0.28, pR*0.22, 0, Math.PI*2);
+  ctx.fillStyle='rgba(255,255,255,0.85)'; ctx.fill();
+}
+
+/* ══════════════════════════════════════════════════════
+   FACE — AGENT C (Condition 6)
+   A face with gaze directed toward the cause event (left, gazeDir=-1),
+   that starts 'happy' and changes to 'surprised' (wide eyes + open
+   mouth) after the configured delay. Agent C never moves.
+══════════════════════════════════════════════════════ */
+function drawFaceAgentC(ctx, bx, by, r, expr, gazeDir){
+  const scR=r*0.22, ey=by-r*0.22, eo=r*0.34;
+  const wide = expr==='surprised';
+  ctx.save();
+  ctx.beginPath(); ctx.arc(bx,by,r-0.5,0,Math.PI*2); ctx.clip();
+  drawEyeGaze(ctx, bx-eo, ey, scR, gazeDir, wide);
+  drawEyeGaze(ctx, bx+eo, ey, scR, gazeDir, wide);
+  drawNose(ctx, bx, ey+r*0.30, r);
+  /* Happy mouth stays at its canonical position.
+     Surprised mouth gets a lower anchor so the oval top clears the nose
+     (nose bottom is at ~by+r*0.22; oval top with this anchor is ~by+r*0.41). */
+  const mouthY = expr === 'surprised' ? by + r*0.55 : by + r*0.30;
+  drawMouth(ctx, bx, mouthY, r*0.26, expr === 'surprised' ? 'surprised' : 'happy');
+  ctx.restore();
+}
+
+/* ══════════════════════════════════════════════════════
+   GEOMETRY HELPERS
+   causeStopX includes a 2px gap to compensate for stroke width (1.5px)
+   so the visible edges touch at exactly one point, no overlap.
+══════════════════════════════════════════════════════ */
+function makeLayout(canvasEl, R){
+  function W(){ return canvasEl.width; }
+  function agentX0(){ return W()*0.68; }
+  function causeX0(){ return W()*0.12; }
+  function causeStopX(){ return agentX0() - R*2 - 2; }
+  const Y = canvasEl.height * 0.50;
+  const SPEED = 2.8;
+  function framesUntilHit(){ return Math.ceil((causeStopX()-causeX0())/SPEED); }
+  return { W, agentX0, causeX0, causeStopX, Y, SPEED, framesUntilHit };
+}
+
+/* ══════════════════════════════════════════════════════
+   CONDITION 4 — scrambled-face physical (clone of Cond 1 mechanic)
+   Left ball slides in, contacts right ball, right ball (with scrambled
+   face) slides away after the delay. Face does not rotate (matches
+   Cond 1's non-rotating slide).
+══════════════════════════════════════════════════════ */
+function makeRunnerScrambled(canvasEl, statusEl, loopCheckbox){
+  const R = 24;
+  function resize(){ canvasEl.width=canvasEl.offsetWidth||320; canvasEl.height=canvasEl.clientHeight||320; }
+  resize();
+  const ctx = canvasEl.getContext('2d');
+  const COL_CAUSE='#7a9ec9', COL_PAT='#e8b860', BG='#fafafa';
+
+  let L = makeLayout(canvasEl, R);
+  let state='idle', causeX=0, agentX=0, agentVel=0;
+  let frame=0, effectFrame=0, animId=null;
+
+  function drawScene(){
+    ctx.clearRect(0,0,L.W(),canvasEl.height);
+    ctx.fillStyle=BG; ctx.fillRect(0,0,L.W(),canvasEl.height);
+    /* Patient first (with scrambled face), cause on top */
+    drawBall(ctx, agentX, L.Y, R, COL_PAT);
+    drawFaceScrambled(ctx, agentX, L.Y, R);
+    drawBall(ctx, causeX, L.Y, R, COL_CAUSE);
+  }
+
+  function tick(){
+    frame++;
+    if(causeX < L.causeStopX()){
+      causeX += L.SPEED;
+      if(causeX >= L.causeStopX()){
+        causeX = L.causeStopX();
+        if(state==='approaching') state='hit';
+      }
+    }
+    if((state==='approaching'||state==='hit') && frame>=effectFrame){
+      agentVel = L.SPEED*1.05; state='sliding';
+      const d=getDelay();
+      statusEl.textContent = d<0?`Slides away (${d} ms before contact)`
+                            : d===0?'Slides away (simultaneous)'
+                            : `Slides away (+${d} ms)`;
+    }
+    if(state==='sliding'){
+      agentX += agentVel;
+      if(agentX > L.W()+R+15){
+        state='done'; cancelAnimationFrame(animId);
+        drawScene();
+        if(loopCheckbox.checked) setTimeout(()=>run(),500);
+        return;
+      }
+    }
+    drawScene();
+    animId=requestAnimationFrame(tick);
+  }
+
+  function run(){
+    if(animId) cancelAnimationFrame(animId);
+    resize(); L = makeLayout(canvasEl, R);
+    const FPS=60, d=getDelay(), hitAt=L.framesUntilHit();
+    effectFrame = Math.max(1, hitAt + Math.round(d/(1000/FPS)));
+    state='approaching'; causeX=L.causeX0(); agentX=L.agentX0(); agentVel=0; frame=0;
+    statusEl.textContent = d<0 ? `Approaching — effect ${Math.abs(d)} ms before contact…` : 'Approaching…';
+    drawScene();
+    animId=requestAnimationFrame(tick);
+  }
+
+  return { run };
+}
+
+/* ══════════════════════════════════════════════════════
+   CONDITION 5 — mouth-only mental (clone of Cond 2 mechanic)
+   Left ball slides in, contacts right ball, right ball stays still,
+   only the (large) mouth changes from happy to sad after the delay.
+══════════════════════════════════════════════════════ */
+function makeRunnerMouthOnly(canvasEl, statusEl, loopCheckbox){
+  const R = 24;
+  function resize(){ canvasEl.width=canvasEl.offsetWidth||320; canvasEl.height=canvasEl.clientHeight||320; }
+  resize();
+  const ctx = canvasEl.getContext('2d');
+  const COL_CAUSE='#7a9ec9', COL_PAT='#e8b860', BG='#fafafa';
+
+  let L = makeLayout(canvasEl, R);
+  let state='idle', causeX=0, expr='happy';
+  let frame=0, effectFrame=0, animId=null;
+
+  function drawScene(){
+    ctx.clearRect(0,0,L.W(),canvasEl.height);
+    ctx.fillStyle=BG; ctx.fillRect(0,0,L.W(),canvasEl.height);
+    const ax=L.agentX0();
+    /* Patient first (mouth-only face), cause on top */
+    drawBall(ctx, ax, L.Y, R, COL_PAT);
+    drawFaceMouthOnly(ctx, ax, L.Y, R, expr);
+    drawBall(ctx, causeX, L.Y, R, COL_CAUSE);
+  }
+
+  function tick(){
+    frame++;
+    if(causeX < L.causeStopX()){
+      causeX += L.SPEED;
+      if(causeX >= L.causeStopX()){
+        causeX = L.causeStopX();
+        if(state==='approaching') state='hit';
+      }
+    }
+    if((state==='approaching'||state==='hit') && frame>=effectFrame){
+      expr='sad'; state='expressed';
+      const d=getDelay();
+      statusEl.textContent = d<0?`Mouth changes (${d} ms before contact)`
+                            : d===0?'Mouth changes (simultaneous)'
+                            : `Mouth changes (+${d} ms)`;
+    }
+    if(state==='expressed'){
+      if(frame > effectFrame + 60*1.4){
+        state='done'; cancelAnimationFrame(animId);
+        drawScene();
+        if(loopCheckbox.checked) setTimeout(()=>run(),500);
+        return;
+      }
+    }
+    drawScene();
+    animId=requestAnimationFrame(tick);
+  }
+
+  function run(){
+    if(animId) cancelAnimationFrame(animId);
+    resize(); L = makeLayout(canvasEl, R);
+    const FPS=60, d=getDelay(), hitAt=L.framesUntilHit();
+    effectFrame = Math.max(1, hitAt + Math.round(d/(1000/FPS)));
+    state='approaching'; causeX=L.causeX0(); expr='happy'; frame=0;
+    statusEl.textContent = d<0 ? `Approaching — effect ${Math.abs(d)} ms before contact…` : 'Approaching…';
+    drawScene();
+    animId=requestAnimationFrame(tick);
+  }
+
+  return { run };
+}
+
+/* ══════════════════════════════════════════════════════
+   EXPLOSION HELPERS (Condition 6)
+══════════════════════════════════════════════════════ */
+function drawBlockRect(ctx, x, y, w, h, col){
+  ctx.fillStyle = col;
+  ctx.fillRect(x-w/2, y-h/2, w, h);
+  ctx.fillStyle='rgba(255,255,255,0.18)';
+  ctx.fillRect(x-w/2, y-h/2, w, 4);
+  ctx.fillStyle='rgba(0,0,0,0.18)';
+  ctx.fillRect(x-w/2, y+h/2-4, w, 4);
+  ctx.strokeStyle='rgba(0,0,0,0.25)'; ctx.lineWidth=1;
+  ctx.strokeRect(x-w/2, y-h/2, w, h);
+}
+
+function drawExplosionPiece(ctx, p){
+  ctx.beginPath(); ctx.arc(p.x, p.y, p.sz, 0, Math.PI*2);
+  ctx.fillStyle = p.col; ctx.fill();
+  ctx.beginPath(); ctx.arc(p.x-p.sz*0.25, p.y-p.sz*0.25, p.sz*0.35, 0, Math.PI*2);
+  ctx.fillStyle='rgba(255,255,255,0.25)'; ctx.fill();
+  ctx.strokeStyle='rgba(90,30,15,0.5)'; ctx.lineWidth=1; ctx.stroke();
+}
+
+function drawSparkParticles(ctx, sparks){
+  sparks.forEach(s=>{
+    if(s.life<=0) return;
+    ctx.beginPath(); ctx.arc(s.x, s.y, s.r, 0, Math.PI*2);
+    const g = Math.floor(120+s.life*120);
+    ctx.fillStyle = `rgba(230,${g},40,${s.life})`;
+    ctx.fill();
+  });
+}
+
+function drawShockRing(ctx, x, y, radius, alpha){
+  if(alpha<=0) return;
+  ctx.beginPath(); ctx.arc(x, y, radius, 0, Math.PI*2);
+  ctx.strokeStyle = `rgba(220,140,50,${alpha})`;
+  ctx.lineWidth = 2.5; ctx.stroke();
+}
+
+/* ══════════════════════════════════════════════════════
+   CONDITION 6 — explosion → distant agent's surprise
+   Block A slides in and hits Block B (which explodes).
+   Agent C stands apart (no contact), gaze toward the explosion,
+   and changes from happy to surprised after the configured delay
+   (delay measured from the moment Block A contacts Block B).
+══════════════════════════════════════════════════════ */
+function makeRunnerExplosionMental(canvasEl, statusEl, loopCheckbox){
+  const AGENT_R = 24;
+  const BW = 30, BH = 30;
+  const GRAVITY = 0.30, BOUNCE_DAMP = 0.35, FRICTION = 0.90;
+
+  function resize(){ canvasEl.width=canvasEl.offsetWidth||320; canvasEl.height=canvasEl.clientHeight||320; }
+  resize();
+  const ctx = canvasEl.getContext('2d');
+  const COL_A='#7a9ec9', COL_B='#9a3a2a', COL_C='#e8b860', BG='#fafafa';
+
+  function W(){ return canvasEl.width; }
+  function H(){ return canvasEl.height; }
+  function GROUND(){ return H()*0.72; }
+  function blockBX(){ return W()*0.32; }
+  function blockAStartX(){ return -BW; }
+  function blockAStopX(){ return blockBX() - BW - 1; }   /* 1px gap, both stroked rects */
+  function agentCX(){ return W()*0.80; }
+  const SPEED = 3.0;
+  function framesUntilHit(){ return Math.ceil((blockAStopX()-blockAStartX())/SPEED); }
+
+  let state='idle', blockAX=0, frame=0, effectFrame=0, animId=null;
+  let pieces=[], sparks=[], shockR=0, shockAlpha=0;
+  let expr='happy', effectTriggered=false, exploded=false;
+
+  function spawnExplosion(){
+    const ox=blockBX(), oy=GROUND()-BH/2;
+    const defs = [
+      {a:-0.3, sz:8, spd:5.0, col:'#c86050'},
+      {a:-1.1, sz:6, spd:5.6, col:'#b85040'},
+      {a:Math.PI-0.5, sz:7, spd:4.6, col:'#d07060'},
+      {a:Math.PI+0.4, sz:6, spd:5.2, col:'#a84030'},
+    ];
+    pieces = defs.map(d=>({
+      x:ox, y:oy,
+      vx:d.spd*Math.cos(d.a), vy:d.spd*Math.sin(d.a)-1.5,
+      sz:d.sz, col:d.col, stopped:false, onGround:false,
+    }));
+    sparks=[];
+    for(let i=0;i<22;i++){
+      const sa=Math.random()*Math.PI*2, sv=1.5+Math.random()*4;
+      sparks.push({x:ox,y:oy, vx:sv*Math.cos(sa), vy:sv*Math.sin(sa)-2,
+        r:1+Math.random()*2.4, life:1.0, decay:0.045+Math.random()*0.04});
+    }
+    shockR=6; shockAlpha=0.85;
+  }
+
+  function updatePieces(){
+    pieces.forEach(p=>{
+      if(p.stopped) return;
+      p.vy += GRAVITY;
+      p.x += p.vx; p.y += p.vy;
+      if(p.y+p.sz >= GROUND()){
+        p.y = GROUND()-p.sz;
+        p.vy = -Math.abs(p.vy)*BOUNCE_DAMP;
+        p.vx *= FRICTION;
+        p.onGround = true;
+        if(Math.abs(p.vy)<0.4) p.vy=0;
+      }
+      if(p.onGround) p.vx *= 0.90;
+      if(p.onGround && Math.abs(p.vx)<0.15 && Math.abs(p.vy)<0.4){
+        p.vx=0; p.vy=0; p.stopped=true;
+      }
+    });
+    sparks.forEach(s=>{ s.x+=s.vx; s.y+=s.vy; s.vy+=0.15; s.life-=s.decay; });
+    sparks = sparks.filter(s=>s.life>0);
+    if(shockAlpha>0){ shockR+=4; shockAlpha-=0.05; if(shockAlpha<0) shockAlpha=0; }
+  }
+  function allPiecesStopped(){ return pieces.length===0 || pieces.every(p=>p.stopped); }
+
+  function drawScene(){
+    ctx.clearRect(0,0,W(),H());
+    ctx.fillStyle=BG; ctx.fillRect(0,0,W(),H());
+    /* Ground line */
+    ctx.strokeStyle='#e6e2d8'; ctx.lineWidth=1;
+    ctx.beginPath(); ctx.moveTo(0,GROUND()); ctx.lineTo(W(),GROUND()); ctx.stroke();
+
+    if(state!=='idle') drawBlockRect(ctx, blockAX, GROUND()-BH/2, BW, BH, COL_A);
+    if(!exploded) drawBlockRect(ctx, blockBX(), GROUND()-BH/2, BW, BH, COL_B);
+
+    drawShockRing(ctx, blockBX(), GROUND()-BH/2, shockR, shockAlpha);
+    pieces.forEach(p=>drawExplosionPiece(ctx,p));
+    drawSparkParticles(ctx, sparks);
+
+    /* Agent C — gaze toward Block B (to its left) */
+    const acx=agentCX(), acy=GROUND()-AGENT_R;
+    ctx.beginPath(); ctx.arc(acx, acy, AGENT_R, 0, Math.PI*2);
+    ctx.fillStyle=COL_C; ctx.strokeStyle=COL_C; ctx.lineWidth=1.5; ctx.fill(); ctx.stroke();
+    drawFaceAgentC(ctx, acx, acy, AGENT_R, expr, -1);
+  }
+
+  function tick(){
+    frame++;
+
+    if(state==='approaching'){
+      blockAX += SPEED;
+      if(blockAX >= blockAStopX()){
+        blockAX = blockAStopX();
+        state='hit';
+        exploded=true;
+        spawnExplosion();
+        statusEl.textContent = '💥 Explosion!';
+      }
+    }
+
+    if(pieces.length>0) updatePieces();
+
+    if((state==='approaching'||state==='hit') && !effectTriggered && frame>=effectFrame){
+      expr='surprised'; effectTriggered=true;
+      const d=getDelay();
+      statusEl.textContent = d<0?`Agent C surprised (${d} ms before contact)`
+                            : d===0?'Agent C surprised (simultaneous)'
+                            : `Agent C surprised (+${d} ms)`;
+    }
+
+    if(effectTriggered && allPiecesStopped() && frame > effectFrame + 60*1.6 && exploded){
+      state='done'; cancelAnimationFrame(animId);
+      drawScene();
+      if(loopCheckbox.checked) setTimeout(()=>run(),500);
+      return;
+    }
+
+    drawScene();
+    animId=requestAnimationFrame(tick);
+  }
+
+  function run(){
+    if(animId) cancelAnimationFrame(animId);
+    resize();
+    const FPS=60, d=getDelay(), hitAt=framesUntilHit();
+    effectFrame = Math.max(1, hitAt + Math.round(d/(1000/FPS)));
+    state='approaching'; blockAX=blockAStartX(); frame=0;
+    pieces=[]; sparks=[]; shockR=0; shockAlpha=0;
+    expr='happy'; effectTriggered=false; exploded=false;
+    statusEl.textContent = d<0 ? `Approaching — effect ${Math.abs(d)} ms before contact…` : 'Block A approaching…';
+    drawScene();
+    animId=requestAnimationFrame(tick);
+  }
+
+  return { run };
+}
+
+/* ══════════════════════════════════════════════════════
+   FACE VARIANT — SLEEP / AWAKE  (Condition 7)
+
+   Closed eye: a thin downward arc (like a closed eyelid crescent).
+   Open eye:   sclera ring + pupil shifted left (toward cause/blue ball).
+   Nose:       same V-shape as other conditions.
+   Mouth:      neutral flat line — neither smile nor frown.
+══════════════════════════════════════════════════════ */
+
+function drawClosedEye(ctx, cx, cy, scR){
+  /* Eyelid drawn as the bottom half of an arc, suggesting a shut eye.
+     The line curves slightly downward — classic "sleeping" look. */
+  ctx.save();
+  ctx.beginPath();
+  ctx.arc(cx, cy - scR*0.15, scR, Math.PI*0.08, Math.PI*0.92);
+  ctx.strokeStyle = '#444';
+  ctx.lineWidth   = 1.6;
+  ctx.lineCap     = 'round';
+  ctx.stroke();
+  /* Tiny lower eyelid line for realism */
+  ctx.beginPath();
+  ctx.arc(cx, cy + scR*0.35, scR*0.60, Math.PI*0.15, Math.PI*0.85);
+  ctx.lineWidth = 0.8;
+  ctx.stroke();
+  ctx.restore();
+}
+
+function drawOpenEyeGaze(ctx, cx, cy, scR, gazeDir){
+  /* Sclera */
+  ctx.beginPath(); ctx.arc(cx, cy, scR, 0, Math.PI*2);
+  ctx.fillStyle = '#fff'; ctx.fill();
+  ctx.strokeStyle = '#444'; ctx.lineWidth = 1.0; ctx.stroke();
+  /* Pupil shifted toward cause (left = gazeDir -1) */
+  const pR = scR*0.46, pOff = scR*0.34*gazeDir;
+  ctx.beginPath(); ctx.arc(cx+pOff, cy, pR, 0, Math.PI*2);
+  ctx.fillStyle = '#1a0e00'; ctx.fill();
+  /* Specular dot */
+  ctx.beginPath(); ctx.arc(cx+pOff-pR*0.28, cy-pR*0.28, pR*0.22, 0, Math.PI*2);
+  ctx.fillStyle = 'rgba(255,255,255,0.85)'; ctx.fill();
+}
+
+function drawNeutralMouth(ctx, cx, cy, halfW){
+  ctx.save();
+  ctx.strokeStyle = '#444';
+  ctx.lineWidth   = 1.6;
+  ctx.lineCap     = 'round';
+  ctx.beginPath();
+  ctx.moveTo(cx - halfW, cy);
+  ctx.lineTo(cx + halfW, cy);
+  ctx.stroke();
+  ctx.restore();
+}
+
+function drawFaceSleepAwake(ctx, bx, by, r, awake){
+  const scR = r*0.22, ey = by - r*0.22, eo = r*0.34;
+  ctx.save();
+  ctx.beginPath(); ctx.arc(bx, by, r-0.5, 0, Math.PI*2); ctx.clip();
+
+  if(awake){
+    /* Open eyes — gazing left toward the blue ball */
+    drawOpenEyeGaze(ctx, bx-eo, ey, scR, -1);
+    drawOpenEyeGaze(ctx, bx+eo, ey, scR, -1);
+  } else {
+    /* Closed eyes — asleep */
+    drawClosedEye(ctx, bx-eo, ey, scR);
+    drawClosedEye(ctx, bx+eo, ey, scR);
+  }
+
+  /* Nose — same V-shape, always present, never moves */
+  ctx.save();
+  ctx.translate(bx, ey + r*0.30);
+  ctx.strokeStyle = '#444'; ctx.lineWidth = 1.4; ctx.lineCap = 'round';
+  ctx.beginPath();
+  ctx.moveTo(-r*0.08, 0);
+  ctx.lineTo(0,        r*0.14);
+  ctx.lineTo( r*0.08, 0);
+  ctx.stroke();
+  ctx.restore();
+
+  /* Neutral flat mouth — always present, never changes */
+  drawNeutralMouth(ctx, bx, by + r*0.50, r*0.28);
+
+  ctx.restore();
+}
+
+/* ══════════════════════════════════════════════════════
+   CONDITION 7 RUNNER
+   Mechanic identical to Cond 5 (blue ball approaches, yellow stays
+   still). Effect: eyes open and gaze shifts left toward cause.
+══════════════════════════════════════════════════════ */
+function makeRunnerSleepAwake(canvasEl, statusEl, loopCheckbox){
+  const R = 24;
+  function resize(){ canvasEl.width=canvasEl.offsetWidth||320; canvasEl.height=canvasEl.clientHeight||320; }
+  resize();
+  const ctx    = canvasEl.getContext('2d');
+  const COL_CAUSE='#7a9ec9', COL_PAT='#e8b860', BG='#fafafa';
+
+  let L = makeLayout(canvasEl, R);
+  let state='idle', causeX=0, awake=false;
+  let frame=0, effectFrame=0, animId=null;
+
+  function drawScene(){
+    ctx.clearRect(0,0,L.W(),canvasEl.height);
+    ctx.fillStyle=BG; ctx.fillRect(0,0,L.W(),canvasEl.height);
+    const ax = L.agentX0();
+    /* Patient first so cause ball draws on top */
+    drawBall(ctx, ax, L.Y, R, COL_PAT);
+    drawFaceSleepAwake(ctx, ax, L.Y, R, awake);
+    drawBall(ctx, causeX, L.Y, R, COL_CAUSE);
+  }
+
+  function tick(){
+    frame++;
+    if(causeX < L.causeStopX()){
+      causeX += L.SPEED;
+      if(causeX >= L.causeStopX()){
+        causeX = L.causeStopX();
+        if(state==='approaching') state='hit';
+      }
+    }
+    if((state==='approaching'||state==='hit') && frame>=effectFrame){
+      awake=true; state='changed';
+      const d=getDelay();
+      statusEl.textContent = d<0?`Eyes open (${d} ms before contact)`
+                            : d===0?'Eyes open (simultaneous)'
+                            : `Eyes open (+${d} ms)`;
+    }
+    if(state==='changed'){
+      if(frame > effectFrame + 60*1.4){
+        state='done'; cancelAnimationFrame(animId);
+        drawScene();
+        if(loopCheckbox.checked) setTimeout(()=>run(), 500);
+        return;
+      }
+    }
+    drawScene();
+    animId=requestAnimationFrame(tick);
+  }
+
+  function run(){
+    if(animId) cancelAnimationFrame(animId);
+    resize(); L = makeLayout(canvasEl, R);
+    const FPS=60, d=getDelay(), hitAt=L.framesUntilHit();
+    effectFrame = Math.max(1, hitAt + Math.round(d/(1000/FPS)));
+    state='approaching'; causeX=L.causeX0(); awake=false; frame=0;
+    statusEl.textContent = d<0 ? `Approaching — eyes open ${Math.abs(d)} ms before contact…` : 'Approaching…';
+    drawScene();
+    animId=requestAnimationFrame(tick);
+  }
+
+  return { run };
+}
+
+/* ══════════════════════════════════════════════════════
+   INIT
+══════════════════════════════════════════════════════════ */
+window.addEventListener('load', ()=>{
+  const loop4 = document.getElementById('loop4');
+  const loop5 = document.getElementById('loop5');
+  const loop6 = document.getElementById('loop6');
+  const loop7 = document.getElementById('loop7');
+
+  const r4 = makeRunnerScrambled(document.getElementById('c4'), document.getElementById('st4'), loop4);
+  const r5 = makeRunnerMouthOnly(document.getElementById('c5'), document.getElementById('st5'), loop5);
+  const r6 = makeRunnerExplosionMental(document.getElementById('c6'), document.getElementById('st6'), loop6);
+  const r7 = makeRunnerSleepAwake(document.getElementById('c7'), document.getElementById('st7'), loop7);
+
+  document.getElementById('replay4').onclick = ()=>r4.run();
+  document.getElementById('replay5').onclick = ()=>r5.run();
+  document.getElementById('replay6').onclick = ()=>r6.run();
+  document.getElementById('replay7').onclick = ()=>r7.run();
+
+  r4.run(); r5.run(); r6.run(); r7.run();
+});
+</script>
+</body>
+</html>
