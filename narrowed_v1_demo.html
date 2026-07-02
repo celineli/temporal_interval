@@ -1,0 +1,1751 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Causal Delay — v6 (slide + color-change control)</title>
+    <style>
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+      body {
+        font-family: "Georgia", serif;
+        background: #f4f1ec;
+        color: #333;
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        padding: 28px 16px 70px;
+      }
+      h1 {
+        font-size: 18px;
+        font-weight: normal;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: #6a5a40;
+        margin-bottom: 5px;
+      }
+      .subtitle {
+        font-size: 13px;
+        color: #999;
+        margin-bottom: 24px;
+        letter-spacing: 0.04em;
+      }
+
+      /* ── Sticky delay control bar ── */
+      #delayBar {
+        position: sticky;
+        top: 0;
+        z-index: 50;
+        width: 100%;
+        max-width: 1040px;
+        background: #f4f1ec;
+        padding: 14px 18px;
+        border: 1px solid #ddd6c8;
+        border-radius: 8px;
+        margin-bottom: 24px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.04);
+      }
+      .controls {
+        display: flex;
+        align-items: center;
+        gap: 18px;
+        justify-content: center;
+        flex-wrap: wrap;
+      }
+      .ctrl-label {
+        font-size: 13px;
+        color: #777;
+        letter-spacing: 0.04em;
+      }
+      input[type="range"] {
+        -webkit-appearance: none;
+        width: 320px;
+        height: 4px;
+        background: #ddd6c8;
+        border-radius: 2px;
+        outline: none;
+        cursor: pointer;
+      }
+      input[type="range"]::-webkit-slider-thumb {
+        -webkit-appearance: none;
+        width: 18px;
+        height: 18px;
+        border-radius: 50%;
+        background: #b8935a;
+        cursor: pointer;
+      }
+      .delay-readout {
+        font-size: 16px;
+        font-weight: bold;
+        color: #b8935a;
+        min-width: 76px;
+      }
+      .delay-note {
+        font-size: 11px;
+        color: #aaa;
+        text-align: center;
+        margin-top: 6px;
+      }
+      .delay-note em {
+        color: #b8935a;
+        font-style: normal;
+      }
+
+      /* ── Grid ── */
+      .grid {
+        width: 100%;
+        max-width: 1040px;
+      }
+      .section-heading {
+        font-size: 11px;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        color: #aaa;
+        border-bottom: 1px solid #e4ddd0;
+        padding-bottom: 6px;
+        margin: 22px 0 14px;
+      }
+      .row {
+        display: flex;
+        flex-direction: column;
+        gap: 24px;
+        align-items: center;
+      }
+      .panel {
+        width: 100%;
+        max-width: 760px;
+        position: relative;
+        display: flex;
+        flex-direction: column;
+        background: #fff;
+        border: 1px solid #e8e1d4;
+        border-radius: 10px;
+        padding: 18px;
+      }
+      .panel-label {
+        font-size: 12px;
+        color: #888;
+        text-align: center;
+        margin-bottom: 10px;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        line-height: 1.6;
+      }
+      .cond-num {
+        display: inline-block;
+        font-size: 11px;
+        color: #b8935a;
+        margin-bottom: 2px;
+        font-weight: bold;
+      }
+      .sub {
+        color: #bbb;
+        font-size: 10px;
+        text-transform: none;
+        display: block;
+        margin-top: 2px;
+      }
+      canvas {
+        display: block;
+        width: 100%;
+        border: 2px solid #000;
+        border-radius: 6px;
+        background: #fafafa;
+      }
+
+      /* ── Fullscreen expand button ── */
+      .expand-btn {
+        position: absolute;
+        bottom: 14px;
+        right: 14px;
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        background: #fff;
+        border: 1px solid #ddd6c8;
+        color: #b8935a;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 16px;
+        cursor: pointer;
+        z-index: 5;
+        transition:
+          background 0.15s,
+          border-color 0.15s,
+          transform 0.1s;
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);
+      }
+      .expand-btn:hover {
+        background: #fbf6ec;
+        border-color: #b8935a;
+        transform: scale(1.06);
+      }
+
+      /* ── Fullscreen overlay ── */
+      #fullscreenOverlay {
+        display: none;
+        position: fixed;
+        inset: 0;
+        z-index: 1000;
+        background: #fafafa;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 40px;
+      }
+      #fullscreenOverlay.active {
+        display: flex;
+      }
+      #fsCanvas {
+        width: min(90vw, 1100px);
+        height: min(70vh, 620px);
+        border: 2px solid #000;
+        border-radius: 8px;
+        background: #fafafa;
+      }
+      #fsClose {
+        position: absolute;
+        top: 24px;
+        right: 28px;
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        background: #fff;
+        border: 1px solid #ddd6c8;
+        color: #b8935a;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 18px;
+        cursor: pointer;
+        transition:
+          background 0.15s,
+          border-color 0.15s;
+      }
+      #fsClose:hover {
+        background: #fbf6ec;
+        border-color: #b8935a;
+      }
+      #fsStatus {
+        display: none;
+      }
+      /* ── Loop controls per panel ── */
+      .panel-controls {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 14px;
+        margin-top: 12px;
+      }
+      .loop-toggle {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 12px;
+        color: #888;
+        cursor: pointer;
+        user-select: none;
+      }
+      .loop-toggle input {
+        width: 15px;
+        height: 15px;
+        accent-color: #b8935a;
+        cursor: pointer;
+      }
+      .status {
+        display: none;
+      }
+      .replay-btn {
+        background: transparent;
+        border: 1px solid #ddd6c8;
+        color: #999;
+        font-family: "Georgia", serif;
+        font-size: 11px;
+        padding: 5px 14px;
+        border-radius: 4px;
+        cursor: pointer;
+        letter-spacing: 0.03em;
+        transition:
+          border-color 0.15s,
+          color 0.15s;
+      }
+      .replay-btn:hover {
+        border-color: #b8935a;
+        color: #b8935a;
+      }
+
+      /* ── Color picker station ── */
+      #colorStation {
+        background: #fff;
+        border: 1px solid #e8e1d4;
+        border-radius: 10px;
+        padding: 20px 24px;
+        margin-top: 6px;
+      }
+      .cs-title {
+        font-size: 12px;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: #b8935a;
+        margin-bottom: 14px;
+      }
+      .cs-row {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        margin-bottom: 14px;
+        flex-wrap: wrap;
+      }
+      .cs-label {
+        font-size: 12px;
+        color: #888;
+        min-width: 90px;
+      }
+      .swatches {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+      }
+      .swatch {
+        width: 30px;
+        height: 30px;
+        border-radius: 50%;
+        border: 2px solid transparent;
+        cursor: pointer;
+        transition:
+          transform 0.1s,
+          border-color 0.1s;
+      }
+      .swatch:hover {
+        transform: scale(1.12);
+      }
+      .swatch.selected {
+        border-color: #333;
+        transform: scale(1.12);
+      }
+
+      /* ── Hex color input ── */
+      .hex-input-wrap {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        margin-left: 4px;
+      }
+      .hex-dot {
+        width: 22px;
+        height: 22px;
+        border-radius: 50%;
+        border: 1.5px solid #ddd;
+        flex-shrink: 0;
+      }
+      .hex-input {
+        font-family: monospace;
+        font-size: 12px;
+        width: 82px;
+        padding: 4px 7px;
+        border: 1px solid #ddd6c8;
+        border-radius: 4px;
+        background: #fafafa;
+        color: #555;
+        outline: none;
+        letter-spacing: 0.05em;
+        transition: border-color 0.15s;
+      }
+      .hex-input:focus {
+        border-color: #b8935a;
+      }
+      .hex-input.invalid {
+        border-color: #d9534f;
+        background: #fff5f5;
+      }
+      .cs-preview {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-size: 12px;
+        color: #888;
+      }
+      .cs-preview-ball {
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        border: 1px solid #ccc;
+      }
+      .cs-arrow {
+        font-size: 16px;
+        color: #ccc;
+      }
+
+      /* ── Shape control station ── */
+      #shapeStation {
+        background: #fff;
+        border: 1px solid #e8e1d4;
+        border-radius: 10px;
+        padding: 20px 24px;
+        margin-top: 6px;
+      }
+      .shape-options {
+        display: flex;
+        gap: 12px;
+        flex-wrap: wrap;
+      }
+      .shape-btn {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 8px;
+        padding: 12px 16px;
+        background: #fafafa;
+        border: 2px solid #e8e1d4;
+        border-radius: 8px;
+        cursor: pointer;
+        transition:
+          border-color 0.15s,
+          background 0.15s;
+        font-family: "Georgia", serif;
+        font-size: 11px;
+        color: #888;
+      }
+      .shape-btn:hover {
+        background: #fff;
+        border-color: #b8935a;
+      }
+      .shape-btn.selected {
+        background: #fbf6ec;
+        border-color: #b8935a;
+        color: #b8935a;
+      }
+      .shape-preview {
+        width: 40px;
+        height: 40px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .shape-preview.circle {
+        background: #7a9ec9;
+        border-radius: 50%;
+      }
+      .shape-preview.square {
+        background: #7a9ec9;
+        border-radius: 4px;
+      }
+
+      /* ── Speed control station ── */
+      #speedStation {
+        background: #fff;
+        border: 1px solid #e8e1d4;
+        border-radius: 10px;
+        padding: 20px 24px;
+        margin-top: 6px;
+      }
+
+      .legend {
+        margin-top: 30px;
+        font-size: 11px;
+        color: #aaa;
+        max-width: 1000px;
+        text-align: center;
+        line-height: 2;
+      }
+      .legend strong {
+        color: #888;
+        font-weight: normal;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Causal Delay Experiment</h1>
+    <p class="subtitle">
+      v6 — Michottean slide · gaze-toward mental · color-change control
+    </p>
+
+    <!-- ══════════════════════════════════════════════
+     STICKY DELAY BAR
+══════════════════════════════════════════════ -->
+    <div id="delayBar">
+      <div class="controls">
+        <span class="ctrl-label">Delay between contact and effect:</span>
+        <input
+          type="range"
+          id="delaySlider"
+          min="-1000"
+          max="1000"
+          step="10"
+          value="300"
+        />
+        <span class="delay-readout" id="delayVal">+300 ms</span>
+      </div>
+      <div class="delay-note">
+        <em>Negative</em> = effect before contact &nbsp;|&nbsp; <em>0 ms</em> =
+        simultaneous &nbsp;|&nbsp; <em>Positive</em> = effect after contact
+        &nbsp;|&nbsp; Looping panels update live as you drag the slider.
+      </div>
+    </div>
+
+    <div class="grid">
+      <div class="section-heading">Three conditions</div>
+      <div class="row">
+        <!-- Condition 1 — Michottean slide -->
+        <div class="panel">
+          <div class="panel-label">
+            <span class="cond-num">Condition 1</span><br />
+            No-gaze physical (Michottean slide)<br />
+            <span class="sub"
+              >Clean balls — left ball slides into right ball, right ball slides
+              away</span
+            >
+          </div>
+          <canvas id="c1" height="320"></canvas>
+          <div class="expand-btn" id="expand1" title="Fullscreen">→</div>
+          <div class="panel-controls">
+            <label class="loop-toggle"
+              ><input type="checkbox" id="loop1" checked /> Loop</label
+            >
+            <button class="replay-btn" id="replay1">Replay</button>
+          </div>
+          <div class="status" id="st1"></div>
+        </div>
+
+        <!-- Condition 2 — gaze-toward mental -->
+        <div class="panel">
+          <div class="panel-label">
+            <span class="cond-num">Condition 2</span><br />
+            Gaze-toward mental<br />
+            <span class="sub"
+              >Patient stays still, eyes toward cause, happy → sad</span
+            >
+          </div>
+          <canvas id="c4" height="320"></canvas>
+          <div class="expand-btn" id="expand4" title="Fullscreen">→</div>
+          <div class="panel-controls">
+            <label class="loop-toggle"
+              ><input type="checkbox" id="loop4" checked /> Loop</label
+            >
+            <button class="replay-btn" id="replay4">Replay</button>
+          </div>
+          <div class="status" id="st4"></div>
+        </div>
+
+        <!-- Color-change control -->
+        <div class="panel">
+          <div class="panel-label">
+            <span class="cond-num">Color-change control</span><br />
+            Same as Cond 1, but right ball stays still<br />
+            <span class="sub"
+              >Right ball changes color after delay — no motion confound</span
+            >
+          </div>
+          <canvas id="cC" height="320"></canvas>
+          <div class="expand-btn" id="expandC" title="Fullscreen">→</div>
+          <div class="panel-controls">
+            <label class="loop-toggle"
+              ><input type="checkbox" id="loopC" checked /> Loop</label
+            >
+            <button class="replay-btn" id="replayC">Replay</button>
+          </div>
+          <div class="status" id="stC"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════════════════════
+     COLOR PICKER STATION
+══════════════════════════════════════════════ -->
+    <div class="grid" style="margin-top: 8px">
+      <div class="section-heading">Color control — per condition</div>
+      <div id="colorStation">
+        <div class="cs-title">Condition 1 — Michottean slide</div>
+        <div class="cs-row">
+          <div class="cs-label">Left ball (agent)</div>
+          <div class="swatches" id="c1Agent"></div>
+        </div>
+        <div class="cs-row">
+          <div class="cs-label">Right ball (patient)</div>
+          <div class="swatches" id="c1Patient"></div>
+        </div>
+
+        <div class="cs-title" style="margin-top: 16px">
+          Condition 2 — Gaze-toward mental
+        </div>
+        <div class="cs-row">
+          <div class="cs-label">Left ball (agent)</div>
+          <div class="swatches" id="c2Agent"></div>
+        </div>
+        <div class="cs-row">
+          <div class="cs-label">Right ball (patient)</div>
+          <div class="swatches" id="c2Patient"></div>
+        </div>
+
+        <div class="cs-title" style="margin-top: 16px">
+          Condition 3 — Color-change control
+        </div>
+        <div class="cs-row">
+          <div class="cs-label">Left ball (agent)</div>
+          <div class="swatches" id="c3Agent"></div>
+        </div>
+        <div class="cs-row">
+          <div class="cs-label">Right ball — before</div>
+          <div class="swatches" id="c3Before"></div>
+        </div>
+        <div class="cs-row">
+          <div class="cs-label">Right ball — after</div>
+          <div class="swatches" id="c3After"></div>
+        </div>
+        <div class="cs-row" style="margin-top: 4px">
+          <div class="cs-preview">
+            <span>Cond 3 preview:</span>
+            <div class="cs-preview-ball" id="previewBefore"></div>
+            <span class="cs-arrow">→</span>
+            <div class="cs-preview-ball" id="previewAfter"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════════════════════
+     SHAPE CONTROL PANEL
+══════════════════════════════════════════════ -->
+    <div class="grid" style="margin-top: 8px">
+      <div class="section-heading">Shape control</div>
+      <div id="shapeStation">
+        <div class="cs-title">Select shapes for agents</div>
+
+        <div class="cs-row">
+          <div class="cs-label">Causal agent (left ball)</div>
+          <div class="shape-options">
+            <button
+              class="shape-btn selected"
+              data-shape="circle"
+              data-role="agent"
+            >
+              <div class="shape-preview circle"></div>
+              <span>Circle</span>
+            </button>
+            <button class="shape-btn" data-shape="square" data-role="agent">
+              <div class="shape-preview square"></div>
+              <span>Square</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="cs-row">
+          <div class="cs-label">Causal patient (right ball)</div>
+          <div class="shape-options">
+            <button
+              class="shape-btn selected"
+              data-shape="circle"
+              data-role="patient"
+            >
+              <div class="shape-preview circle"></div>
+              <span>Circle</span>
+            </button>
+            <button class="shape-btn" data-shape="square" data-role="patient">
+              <div class="shape-preview square"></div>
+              <span>Square</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════════════════════
+     SPEED CONTROL PANEL
+══════════════════════════════════════════════ -->
+    <div class="grid" style="margin-top: 8px">
+      <div class="section-heading">Speed control</div>
+      <div id="speedStation">
+        <div class="cs-title">Adjust movement speed</div>
+
+        <div class="cs-row" style="margin-bottom: 20px">
+          <div class="cs-label">Causal agent speed</div>
+          <input
+            type="range"
+            id="agentSpeedSlider"
+            min="1"
+            max="12"
+            step="0.1"
+            value="2.8"
+          />
+          <span class="delay-readout" id="agentSpeedVal">2.8x</span>
+        </div>
+
+        <div class="cs-row">
+          <div class="cs-label">Causal patient speed</div>
+          <input
+            type="range"
+            id="patientSpeedSlider"
+            min="1"
+            max="12"
+            step="0.1"
+            value="2.8"
+          />
+          <span class="delay-readout" id="patientSpeedVal">2.8x</span>
+        </div>
+      </div>
+      <div class="grid" style="margin-top: 8px">
+        <div class="section-heading">Size control</div>
+
+        <div id="speedStation">
+          <div class="cs-title">Adjust object size</div>
+
+          <div class="cs-row" style="margin-bottom: 20px">
+            <div class="cs-label">Causal agent size</div>
+
+            <input
+              type="range"
+              id="agentSizeSlider"
+              min="10"
+              max="60"
+              step="1"
+              value="24"
+            />
+
+            <span class="delay-readout" id="agentSizeVal">24</span>
+          </div>
+
+          <div class="cs-row">
+            <div class="cs-label">Causal patient size</div>
+
+            <input
+              type="range"
+              id="patientSizeSlider"
+              min="10"
+              max="60"
+              step="1"
+              value="24"
+            />
+
+            <span class="delay-readout" id="patientSizeVal">24</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <p class="legend">
+      <strong>Cond 1:</strong> classic Michotte launching — clean left ball
+      slides in, contacts right ball, right ball slides away after the delay.
+      &nbsp; <strong>Cond 4:</strong> right ball (agent) has a face, eyes toward
+      the approaching ball, stays still, expression flips happy→sad after the
+      delay. &nbsp; <strong>Color-change control:</strong> identical setup to
+      Cond 1, but the right ball never moves — instead it changes color after
+      the delay. This isolates whether tolerance for delay in Cond 4 is driven
+      by the mental/social nature of the effect, or simply by the right ball
+      remaining stationary.
+    </p>
+
+    <!-- ══════════════════════════════════════════════
+     FULLSCREEN OVERLAY — mimics participant's single-trial view
+══════════════════════════════════════════════ -->
+    <div id="fullscreenOverlay">
+      <div id="fsClose" title="Close">✕</div>
+      <canvas id="fsCanvas"></canvas>
+      <div id="fsStatus"></div>
+    </div>
+
+    <script>
+      "use strict";
+
+      /* ══════════════════════════════════════════════════════
+   DELAY SLIDER  (shared across all panels)
+══════════════════════════════════════════════════════ */
+      const delaySlider = document.getElementById("delaySlider");
+      const delayValEl = document.getElementById("delayVal");
+      function fmtDelay(v) {
+        return v === 0 ? "0 ms" : (v > 0 ? "+" : "") + v + " ms";
+      }
+      delaySlider.oninput = () =>
+        (delayValEl.textContent = fmtDelay(+delaySlider.value));
+      function getDelay() {
+        return +delaySlider.value;
+      }
+
+      /* ══════════════════════════════════════════════════════
+   DRAWING PRIMITIVES
+══════════════════════════════════════════════════════ */
+      function drawBall(ctx, x, y, r, col, shape = "circle") {
+        ctx.fillStyle = col;
+        ctx.strokeStyle = col;
+        ctx.lineWidth = 1.5;
+        if (shape === "square") {
+          ctx.beginPath();
+          ctx.rect(x - r, y - r, r * 2, r * 2);
+          ctx.fill();
+          ctx.stroke();
+        } else {
+          ctx.beginPath();
+          ctx.arc(x, y, r, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.stroke();
+        }
+      }
+      function drawEye(ctx, cx, cy, scR, gd) {
+        const pR = scR * 0.48,
+          pOff = scR * 0.36 * gd;
+        ctx.beginPath();
+        ctx.arc(cx, cy, scR, 0, Math.PI * 2);
+        ctx.fillStyle = "#fff";
+        ctx.fill();
+        ctx.strokeStyle = "#444";
+        ctx.lineWidth = 1.0;
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.arc(cx + pOff, cy, pR, 0, Math.PI * 2);
+        ctx.fillStyle = "#222";
+        ctx.fill();
+        ctx.beginPath();
+        ctx.arc(
+          cx + pOff - pR * 0.28,
+          cy - pR * 0.28,
+          pR * 0.22,
+          0,
+          Math.PI * 2,
+        );
+        ctx.fillStyle = "rgba(255,255,255,0.85)";
+        ctx.fill();
+      }
+
+      function drawFaceUpright(ctx, bx, by, r, expr, gd) {
+        const scR = r * 0.22,
+          ey = by - r * 0.22,
+          eo = r * 0.34;
+        ctx.save();
+        ctx.beginPath();
+        ctx.arc(bx, by, r - 0.5, 0, Math.PI * 2);
+        ctx.clip();
+        drawEye(ctx, bx - eo, ey, scR, gd);
+        drawEye(ctx, bx + eo, ey, scR, gd);
+        ctx.strokeStyle = "#444";
+        ctx.lineWidth = 1.4;
+        ctx.lineCap = "round";
+        ctx.beginPath();
+        ctx.moveTo(bx - r * 0.08, ey + r * 0.22);
+        ctx.lineTo(bx, ey + r * 0.36);
+        ctx.lineTo(bx + r * 0.08, ey + r * 0.22);
+        ctx.stroke();
+        ctx.beginPath();
+        if (expr === "happy")
+          ctx.arc(bx, by + r * 0.2, r * 0.28, Math.PI * 0.12, Math.PI * 0.88);
+        else
+          ctx.arc(bx, by + r * 0.62, r * 0.28, Math.PI * 1.12, Math.PI * 1.88);
+        ctx.stroke();
+        ctx.restore();
+      }
+
+      /* ══════════════════════════════════════════════════════
+   SCRAMBLED FACE — identical pixel elements to Cond 2, rearranged.
+
+   All four elements placed on the vertical centre line (x = bx).
+   Order top → bottom:
+
+     MOUTH  — happy arc (same radius/sweep as Cond 2), rotated 180°
+              so the C-opening faces UPWARD (like a bowl ∪).
+     EYE-1  — left eye from Cond 2, rotated 90° CCW (toward north),
+              so the gaze-offset that was leftward now points UPWARD
+              → pupil closer to top rim.
+     EYE-2  — right eye from Cond 2, rotated 90° CW (toward south),
+              so the gaze-offset that was leftward now points DOWNWARD
+              → pupil closer to bottom rim.
+     NOSE   — V-shape from Cond 2, drawn with the tip pointing UPWARD
+              and the two legs spreading downward ( /\ ).
+
+   Spacing: eyes are ±eyeGap from centre; mouth sits one eyeDiam above
+   the upper eye; nose sits one noseHeight below the lower eye.
+
+   All size constants copied verbatim from drawFaceUpright / drawEye so
+   zero new pixels are introduced.
+══════════════════════════════════════════════════════ */
+      function drawScrambledFace(ctx, bx, by, r, baseCol) {
+        /* ── exact constants from Cond 2 ── */
+        const scR = r * 0.22; // eye sclera radius  (drawEye)
+        const pR = scR * 0.48; // pupil radius       (drawEye)
+
+        const mouthR = r * 0.28; // mouth arc radius   (drawFaceUpright)
+        const noseHalfBase = r * 0.08;
+        const noseHeight = r * 0.14;
+
+        /* ── vertical layout on centre line ── */
+        const eyeGap = scR * 1.45;
+        const eyeY1 = by - eyeGap; // upper white circle centre
+        const eyeY2 = by + eyeGap * 0.8; // lower white circle centre (V position)
+
+        // Mouth arc: arc drawn at (bx, mouthArcCY) with radius mouthR
+        const mouthArcCY = eyeY1 - scR * 2.2 - mouthR * 0.72;
+        // Bottom-most point of the arch (it opens downward like a smile)
+        const mouthBottom = mouthArcCY + mouthR;
+
+        // V-shape: base at noseY, apex (tip) at noseY - noseHeight
+        const noseY = by + r - noseHeight - 0.2; // -2 gives a small gap from the edge
+        const noseTip = noseY - noseHeight; // topmost point of V
+
+        /* ── relocated black pupils (screen-space, on centre line x=bx) ──
+           Upper pupil: midpoint between bottom of arch and top of upper white circle.
+           Lower pupil: midpoint between bottom of lower white circle and top of V. */
+        const upperPupilY = (mouthBottom + (eyeY1 - scR)) / 2;
+        const lowerPupilY = (eyeY2 + scR + noseTip) / 2;
+
+        /* ── clip to ball ── */
+        ctx.save();
+        ctx.beginPath();
+        ctx.arc(bx, by, r - 0.5, 0, Math.PI * 2);
+        ctx.clip();
+
+        /* ════ MOUTH — smile arch opening downward ════ */
+        ctx.save();
+        ctx.beginPath();
+        ctx.arc(bx, mouthArcCY, mouthR, Math.PI * 0.12, Math.PI * 0.88);
+        ctx.strokeStyle = "#444";
+        ctx.lineWidth = 1.4;
+        ctx.lineCap = "round";
+        ctx.stroke();
+        ctx.restore();
+
+        /* ════ EYE-1 (upper white circle) — no pupil inside ════ */
+        ctx.save();
+        ctx.beginPath();
+        ctx.arc(bx, eyeY1, scR, 0, Math.PI * 2);
+        ctx.fillStyle = "#fff";
+        ctx.fill();
+        ctx.strokeStyle = "#444";
+        ctx.lineWidth = 1.0;
+        ctx.stroke();
+        /* Patient-colored filler circle where the pupil used to be (north side) */
+        ctx.beginPath();
+        ctx.arc(bx, eyeY1 - (scR - pR), pR, 0, Math.PI * 2);
+        ctx.fillStyle = baseCol;
+        ctx.fill();
+        ctx.restore();
+
+        /* ════ UPPER BLACK PUPIL — between arch bottom and upper white circle ════ */
+        ctx.beginPath();
+        ctx.arc(bx, upperPupilY, pR, 0, Math.PI * 2);
+        ctx.fillStyle = "#222";
+        ctx.fill();
+        /* Specular highlight */
+        ctx.beginPath();
+        ctx.arc(
+          bx - pR * 0.28,
+          upperPupilY - pR * 0.28,
+          pR * 0.22,
+          0,
+          Math.PI * 2,
+        );
+        ctx.fillStyle = "rgba(255,255,255,0.85)";
+        ctx.fill();
+
+        /* ════ EYE-2 (lower white circle) — no pupil inside ════ */
+        ctx.save();
+        ctx.beginPath();
+        ctx.arc(bx, eyeY2, scR, 0, Math.PI * 2);
+        ctx.fillStyle = "#fff";
+        ctx.fill();
+        ctx.strokeStyle = "#444";
+        ctx.lineWidth = 1.0;
+        ctx.stroke();
+        /* Patient-colored filler circle where the pupil used to be (south side) */
+        ctx.beginPath();
+        ctx.arc(bx, eyeY2 + (scR - pR), pR, 0, Math.PI * 2);
+        ctx.fillStyle = baseCol;
+        ctx.fill();
+        ctx.restore();
+
+        /* ════ LOWER BLACK PUPIL — between lower white circle and V tip ════ */
+        ctx.beginPath();
+        ctx.arc(bx, lowerPupilY, pR, 0, Math.PI * 2);
+        ctx.fillStyle = "#222";
+        ctx.fill();
+        /* Specular highlight */
+        ctx.beginPath();
+        ctx.arc(
+          bx - pR * 0.28,
+          lowerPupilY - pR * 0.28,
+          pR * 0.22,
+          0,
+          Math.PI * 2,
+        );
+        ctx.fillStyle = "rgba(255,255,255,0.85)";
+        ctx.fill();
+
+        /* ════ NOSE — V-tip pointing UPWARD ( /\ ) ════ */
+        ctx.save();
+        ctx.translate(bx, noseY);
+        ctx.beginPath();
+        ctx.moveTo(-noseHalfBase, 0);
+        ctx.lineTo(0, -noseHeight);
+        ctx.lineTo(noseHalfBase, 0);
+        ctx.strokeStyle = "#444";
+        ctx.lineWidth = 1.4;
+        ctx.lineCap = "round";
+        ctx.stroke();
+        ctx.restore();
+
+        ctx.restore(); // un-clip
+      }
+
+      /* ══════════════════════════════════════════════════════
+   GEOMETRY HELPERS — shared layout
+   causeStopX is exactly tangent (2R apart) so 0ms = point contact
+══════════════════════════════════════════════════════ */
+      function makeLayout(canvasEl, R) {
+        function W() {
+          return canvasEl.width;
+        }
+        function agentX0() {
+          return W() * 0.68;
+        } /* right ball resting position */
+        function causeX0() {
+          return W() * 0.12;
+        } /* left ball start position */
+        function causeStopX() {
+          return (
+            agentX0() -
+            getAgentSize() -
+            getPatientSize() -
+            2 /* 2px gap so strokes (lineWidth 1.5) don't visually overlap */
+          );
+        } /* true single-point visual contact */
+        const Y = canvasEl.height * 0.5;
+        function framesUntilHit() {
+          return Math.ceil((causeStopX() - causeX0()) / getAgentSpeed());
+        }
+        return {
+          W,
+          agentX0,
+          causeX0,
+          causeStopX,
+          Y,
+          framesUntilHit,
+        };
+      }
+
+      /* ══════════════════════════════════════════════════════
+   CONDITION 1 — Michottean slide (clean balls, no rotation)
+══════════════════════════════════════════════════════ */
+      function makeRunnerSlide(initCanvas, initStatus, initLoop) {
+        const R = 24;
+        let canvasEl = initCanvas,
+          statusEl = initStatus,
+          loopCheckbox = initLoop;
+        function resize() {
+          canvasEl.width = canvasEl.offsetWidth || 320;
+          canvasEl.height = canvasEl.clientHeight || 320;
+        }
+        resize();
+        let ctx = canvasEl.getContext("2d");
+        const COL_CAUSE = "#7a9ec9",
+          COL_PAT = "#e8b860",
+          BG = "#fafafa";
+
+        let L = makeLayout(canvasEl, R);
+        let state = "idle",
+          causeX = 0,
+          agentX = 0,
+          agentVel = 0;
+        let frame = 0,
+          effectFrame = 0,
+          animId = null;
+
+        function drawScene() {
+          ctx.clearRect(0, 0, L.W(), canvasEl.height);
+          ctx.fillStyle = BG;
+          ctx.fillRect(0, 0, L.W(), canvasEl.height);
+          /* Draw patient first, then cause on top — so the arriving left ball
+             is always fully visible and not occluded by the right ball */
+          /* Patient: scrambled face (same pixels as cond 2, rearranged) */
+          drawBall(
+            ctx,
+            agentX,
+            L.Y,
+            getPatientSize(),
+            colorState.cond1.patient,
+            getPatientShape(),
+          );
+          drawScrambledFace(
+            ctx,
+            agentX,
+            L.Y,
+            getPatientSize(),
+            colorState.cond1.patient,
+          );
+          drawBall(
+            ctx,
+            causeX,
+            L.Y,
+            getAgentSize(),
+            colorState.cond1.agent,
+            getAgentShape(),
+          );
+        }
+
+        function tick() {
+          frame++;
+          if (causeX < L.causeStopX()) {
+            causeX += getAgentSpeed();
+            if (causeX >= L.causeStopX()) {
+              causeX = L.causeStopX();
+              if (state === "approaching") state = "hit";
+            }
+          }
+          if (
+            (state === "approaching" || state === "hit") &&
+            frame >= effectFrame
+          ) {
+            agentVel = getPatientSpeed();
+            state = "sliding";
+            const d = getDelay();
+            statusEl.textContent =
+              d < 0
+                ? `Slides away (${d} ms before contact)`
+                : d === 0
+                  ? "Slides away (simultaneous)"
+                  : `Slides away (+${d} ms)`;
+          }
+          if (state === "sliding") {
+            agentX += agentVel;
+            if (agentX > L.W() + R + 15) {
+              state = "done";
+              cancelAnimationFrame(animId);
+              drawScene();
+              if (loopCheckbox.checked) setTimeout(() => run(), 500);
+              return;
+            }
+          }
+          drawScene();
+          animId = requestAnimationFrame(tick);
+        }
+
+        function run() {
+          if (animId) cancelAnimationFrame(animId);
+          resize();
+          L = makeLayout(canvasEl, R);
+          const FPS = 60,
+            d = getDelay(),
+            hitAt = L.framesUntilHit();
+          effectFrame = Math.max(1, hitAt + Math.round(d / (1000 / FPS)));
+          state = "approaching";
+          causeX = L.causeX0();
+          agentX = L.agentX0();
+          agentVel = 0;
+          frame = 0;
+          statusEl.textContent =
+            d < 0
+              ? `Approaching — effect ${Math.abs(d)} ms before contact…`
+              : "Approaching…";
+          drawScene();
+          animId = requestAnimationFrame(tick);
+        }
+
+        function setTarget(newCanvas, newStatus, newLoop) {
+          canvasEl = newCanvas;
+          statusEl = newStatus;
+          loopCheckbox = newLoop;
+          ctx = canvasEl.getContext("2d");
+          resize();
+          L = makeLayout(canvasEl, R);
+        }
+
+        return { run, setTarget };
+      }
+
+      /* ══════════════════════════════════════════════════════
+   CONDITION 2 — gaze-toward mental
+══════════════════════════════════════════════════════ */
+      function makeRunnerMental(initCanvas, initStatus, initLoop) {
+        const R = 24;
+        let canvasEl = initCanvas,
+          statusEl = initStatus,
+          loopCheckbox = initLoop;
+        function resize() {
+          canvasEl.width = canvasEl.offsetWidth || 320;
+          canvasEl.height = canvasEl.clientHeight || 320;
+        }
+        resize();
+        let ctx = canvasEl.getContext("2d");
+        const COL_CAUSE = "#7a9ec9",
+          COL_PAT = "#e8b860",
+          BG = "#fafafa";
+        const gazeDir = -1; /* toward cause = left */
+
+        let L = makeLayout(canvasEl, R);
+        let state = "idle",
+          causeX = 0,
+          expr = "happy";
+        let frame = 0,
+          effectFrame = 0,
+          animId = null;
+
+        function drawScene() {
+          ctx.clearRect(0, 0, L.W(), canvasEl.height);
+          ctx.fillStyle = BG;
+          ctx.fillRect(0, 0, L.W(), canvasEl.height);
+          const ax = L.agentX0();
+          /* Patient first, cause on top */
+          drawBall(
+            ctx,
+            ax,
+            L.Y,
+            getPatientSize(),
+            colorState.cond2.patient,
+            getPatientShape(),
+          );
+          drawFaceUpright(ctx, ax, L.Y, getPatientSize(), expr, gazeDir);
+          drawBall(
+            ctx,
+            causeX,
+            L.Y,
+            getAgentSize(),
+            colorState.cond2.agent,
+            getAgentShape(),
+          );
+        }
+
+        function tick() {
+          frame++;
+          if (causeX < L.causeStopX()) {
+            causeX += getAgentSpeed();
+            if (causeX >= L.causeStopX()) {
+              causeX = L.causeStopX();
+              if (state === "approaching") state = "hit";
+            }
+          }
+          if (
+            (state === "approaching" || state === "hit") &&
+            frame >= effectFrame
+          ) {
+            expr = "sad";
+            state = "expressed";
+            const d = getDelay();
+            statusEl.textContent =
+              d < 0
+                ? `Expression changes (${d} ms before contact)`
+                : d === 0
+                  ? "Expression changes (simultaneous)"
+                  : `Expression changes (+${d} ms)`;
+          }
+          if (state === "expressed") {
+            if (frame > effectFrame + 60 * 1.4) {
+              state = "done";
+              cancelAnimationFrame(animId);
+              drawScene();
+              if (loopCheckbox.checked) setTimeout(() => run(), 500);
+              return;
+            }
+          }
+          drawScene();
+          animId = requestAnimationFrame(tick);
+        }
+
+        function run() {
+          if (animId) cancelAnimationFrame(animId);
+          resize();
+          L = makeLayout(canvasEl, R);
+          const FPS = 60,
+            d = getDelay(),
+            hitAt = L.framesUntilHit();
+          effectFrame = Math.max(1, hitAt + Math.round(d / (1000 / FPS)));
+          state = "approaching";
+          causeX = L.causeX0();
+          expr = "happy";
+          frame = 0;
+          statusEl.textContent =
+            d < 0
+              ? `Approaching — effect ${Math.abs(d)} ms before contact…`
+              : "Approaching…";
+          drawScene();
+          animId = requestAnimationFrame(tick);
+        }
+
+        function setTarget(newCanvas, newStatus, newLoop) {
+          canvasEl = newCanvas;
+          statusEl = newStatus;
+          loopCheckbox = newLoop;
+          ctx = canvasEl.getContext("2d");
+          resize();
+          L = makeLayout(canvasEl, R);
+        }
+
+        return { run, setTarget };
+      }
+
+      /* ══════════════════════════════════════════════════════
+   COLOR-CHANGE CONTROL — right ball stays still, changes color
+══════════════════════════════════════════════════════ */
+      function makeRunnerColor(initCanvas, initStatus, initLoop, getColors) {
+        const R = 24;
+        let canvasEl = initCanvas,
+          statusEl = initStatus,
+          loopCheckbox = initLoop;
+        function resize() {
+          canvasEl.width = canvasEl.offsetWidth || 320;
+          canvasEl.height = canvasEl.clientHeight || 320;
+        }
+        resize();
+        let ctx = canvasEl.getContext("2d");
+        const COL_CAUSE = "#7a9ec9",
+          BG = "#fafafa";
+
+        let L = makeLayout(canvasEl, R);
+        let state = "idle",
+          causeX = 0,
+          currentCol = "";
+        let frame = 0,
+          effectFrame = 0,
+          animId = null;
+
+        function drawScene() {
+          ctx.clearRect(0, 0, L.W(), canvasEl.height);
+          ctx.fillStyle = BG;
+          ctx.fillRect(0, 0, L.W(), canvasEl.height);
+          /* Patient: scrambled face, base color changes on cue */
+          drawBall(
+            ctx,
+            L.agentX0(),
+            L.Y,
+            getPatientSize(),
+            currentCol,
+            getPatientShape(),
+          );
+          drawScrambledFace(
+            ctx,
+            L.agentX0(),
+            L.Y,
+            getPatientSize(),
+            currentCol,
+          );
+          drawBall(
+            ctx,
+            causeX,
+            L.Y,
+            getAgentSize(),
+            colorState.cond3.agent,
+            getAgentShape(),
+          );
+        }
+
+        function tick() {
+          frame++;
+          if (causeX < L.causeStopX()) {
+            causeX += getAgentSpeed();
+            if (causeX >= L.causeStopX()) {
+              causeX = L.causeStopX();
+              if (state === "approaching") state = "hit";
+            }
+          }
+          if (
+            (state === "approaching" || state === "hit") &&
+            frame >= effectFrame
+          ) {
+            currentCol = colorState.cond3.after;
+            state = "changed";
+            const d = getDelay();
+            statusEl.textContent =
+              d < 0
+                ? `Color changes (${d} ms before contact)`
+                : d === 0
+                  ? "Color changes (simultaneous)"
+                  : `Color changes (+${d} ms)`;
+          }
+          if (state === "changed") {
+            if (frame > effectFrame + 60 * 1.4) {
+              state = "done";
+              cancelAnimationFrame(animId);
+              drawScene();
+              if (loopCheckbox.checked) setTimeout(() => run(), 500);
+              return;
+            }
+          }
+          drawScene();
+          animId = requestAnimationFrame(tick);
+        }
+
+        function run() {
+          if (animId) cancelAnimationFrame(animId);
+          resize();
+          L = makeLayout(canvasEl, R);
+          const FPS = 60,
+            d = getDelay(),
+            hitAt = L.framesUntilHit();
+          effectFrame = Math.max(1, hitAt + Math.round(d / (1000 / FPS)));
+          state = "approaching";
+          causeX = L.causeX0();
+          currentCol = colorState.cond3.before;
+          frame = 0;
+          statusEl.textContent =
+            d < 0
+              ? `Approaching — effect ${Math.abs(d)} ms before contact…`
+              : "Approaching…";
+          drawScene();
+          animId = requestAnimationFrame(tick);
+        }
+
+        function setTarget(newCanvas, newStatus, newLoop) {
+          canvasEl = newCanvas;
+          statusEl = newStatus;
+          loopCheckbox = newLoop;
+          ctx = canvasEl.getContext("2d");
+          resize();
+          L = makeLayout(canvasEl, R);
+        }
+
+        return { run, setTarget };
+      }
+
+      /* ══════════════════════════════════════════════════════
+   COLOR PICKER STATION
+══════════════════════════════════════════════════════ */
+      const COLOR_PALETTE = [
+        { name: "Yellow/Gold", hex: "#e8b860" },
+        { name: "Red", hex: "#d9534f" },
+        { name: "Orange", hex: "#e8893a" },
+        { name: "Green", hex: "#5cb85c" },
+        { name: "Teal", hex: "#4fb8a8" },
+        { name: "Blue", hex: "#5b9bd5" },
+        { name: "Purple", hex: "#9b6fc8" },
+        { name: "Pink", hex: "#e87fa8" },
+        { name: "Brown", hex: "#a9784a" },
+        { name: "Grey", hex: "#9a9a9a" },
+        { name: "White", hex: "#f5f5f5" },
+        { name: "Black", hex: "#333333" },
+      ];
+
+      let colorState = {
+        cond1: {
+          agent: "#7a9ec9",
+          patient: "#e8b860",
+        },
+
+        cond2: {
+          agent: "#7a9ec9",
+          patient: "#e8b860",
+        },
+
+        cond3: {
+          agent: "#7a9ec9",
+          before: COLOR_PALETTE[0].hex,
+          after: COLOR_PALETTE[1].hex,
+        },
+      };
+
+      function buildSwatches(containerId, selectedHex, onSelect) {
+        const container = document.getElementById(containerId);
+        container.innerHTML = "";
+
+        /* ── Swatch dots ── */
+        COLOR_PALETTE.forEach((c) => {
+          const sw = document.createElement("div");
+          sw.className = "swatch" + (c.hex === selectedHex ? " selected" : "");
+          sw.style.background = c.hex;
+          sw.dataset.hex = c.hex;
+          sw.title = c.name;
+          sw.onclick = () => {
+            container
+              .querySelectorAll(".swatch")
+              .forEach((s) => s.classList.remove("selected"));
+            sw.classList.add("selected");
+            hexInput.value = c.hex;
+            dot.style.background = c.hex;
+            hexInput.classList.remove("invalid");
+            onSelect(c.hex);
+          };
+          container.appendChild(sw);
+        });
+
+        /* ── Hex text input ── */
+        const wrap = document.createElement("div");
+        wrap.className = "hex-input-wrap";
+
+        const dot = document.createElement("div");
+        dot.className = "hex-dot";
+        dot.style.background = selectedHex;
+
+        const hexInput = document.createElement("input");
+        hexInput.type = "text";
+        hexInput.className = "hex-input";
+        hexInput.value = selectedHex;
+        hexInput.placeholder = "#RRGGBB";
+        hexInput.maxLength = 7;
+        hexInput.spellcheck = false;
+
+        hexInput.oninput = () => {
+          let val = hexInput.value.trim();
+          /* Auto-prepend # if missing */
+          if (val.length > 0 && val[0] !== "#") val = "#" + val;
+          hexInput.value = val;
+
+          if (/^#[0-9A-Fa-f]{6}$/.test(val)) {
+            hexInput.classList.remove("invalid");
+            dot.style.background = val;
+            /* Deselect palette swatches unless this exact color is in palette */
+            container.querySelectorAll(".swatch").forEach((s) => {
+              if (s.dataset.hex === val) s.classList.add("selected");
+              else s.classList.remove("selected");
+            });
+            onSelect(val);
+          } else {
+            hexInput.classList.add("invalid");
+          }
+        };
+
+        wrap.appendChild(dot);
+        wrap.appendChild(hexInput);
+        container.appendChild(wrap);
+      }
+
+      /* ══════════════════════════════════════════════════════
+   SHAPE SELECTION STATE
+══════════════════════════════════════════════════════ */
+      let shapeState = {
+        agent: "circle",
+        patient: "circle",
+      };
+
+      function getAgentShape() {
+        return shapeState.agent;
+      }
+      function getPatientShape() {
+        return shapeState.patient;
+      }
+
+      /* ══════════════════════════════════════════════════════
+   SPEED SLIDER STATE
+══════════════════════════════════════════════════════ */
+      let speedState = {
+        agent: 2.8,
+        patient: 2.8,
+      };
+      let sizeState = {
+        agent: 24,
+        patient: 24,
+      };
+
+      function getAgentSize() {
+        return sizeState.agent;
+      }
+
+      function getPatientSize() {
+        return sizeState.patient;
+      }
+
+      function getAgentSpeed() {
+        return speedState.agent;
+      }
+      function getPatientSpeed() {
+        return speedState.patient;
+      }
+
+      /* ══════════════════════════════════════════════════════
+   INIT
+══════════════════════════════════════════════════════════ */
+      window.addEventListener("load", () => {
+        const loop1 = document.getElementById("loop1");
+        const loop4 = document.getElementById("loop4");
+        const loopC = document.getElementById("loopC");
+
+        const r1 = makeRunnerSlide(
+          document.getElementById("c1"),
+          document.getElementById("st1"),
+          loop1,
+        );
+        const r4 = makeRunnerMental(
+          document.getElementById("c4"),
+          document.getElementById("st4"),
+          loop4,
+        );
+        const rC = makeRunnerColor(
+          document.getElementById("cC"),
+          document.getElementById("stC"),
+          loopC,
+          () => colorState,
+        );
+
+        document.getElementById("replay1").onclick = () => r1.run();
+        document.getElementById("replay4").onclick = () => r4.run();
+        document.getElementById("replayC").onclick = () => rC.run();
+
+        /* ── Fullscreen expand/close ── */
+        const overlay = document.getElementById("fullscreenOverlay");
+        const fsCanvas = document.getElementById("fsCanvas");
+        const fsStatus = document.getElementById("fsStatus");
+        const alwaysOnLoop = { checked: true }; /* fullscreen always loops */
+
+        const panelMap = {
+          expand1: {
+            runner: r1,
+            canvas: document.getElementById("c1"),
+            status: document.getElementById("st1"),
+            loop: loop1,
+          },
+          expand4: {
+            runner: r4,
+            canvas: document.getElementById("c4"),
+            status: document.getElementById("st4"),
+            loop: loop4,
+          },
+          expandC: {
+            runner: rC,
+            canvas: document.getElementById("cC"),
+            status: document.getElementById("stC"),
+            loop: loopC,
+          },
+        };
+
+        let activeFs = null;
+
+        Object.keys(panelMap).forEach((btnId) => {
+          document.getElementById(btnId).onclick = () => {
+            const { runner, canvas, status, loop } = panelMap[btnId];
+            activeFs = panelMap[btnId];
+            overlay.classList.add("active");
+            /* Redirect runner to fullscreen canvas/status, force loop on */
+            runner.setTarget(fsCanvas, fsStatus, alwaysOnLoop);
+            runner.run();
+          };
+        });
+
+        document.getElementById("fsClose").onclick = () => {
+          if (!activeFs) return;
+          overlay.classList.remove("active");
+          const { runner, canvas, status, loop } = activeFs;
+          /* Redirect back to the original panel canvas/status with its own loop checkbox */
+          runner.setTarget(canvas, status, loop);
+          runner.run();
+          activeFs = null;
+        };
+
+        /* Re-fit fullscreen canvas on resize while open */
+        window.addEventListener("resize", () => {
+          if (activeFs) {
+            activeFs.runner.setTarget(fsCanvas, fsStatus, alwaysOnLoop);
+            activeFs.runner.run();
+          }
+        });
+
+        /* Color picker swatches */
+        function updatePreview() {
+          document.getElementById("previewBefore").style.background =
+            colorState.cond3.before;
+          document.getElementById("previewAfter").style.background =
+            colorState.cond3.after;
+        }
+
+        buildSwatches("c1Agent", colorState.cond1.agent, (hex) => {
+          colorState.cond1.agent = hex;
+          r1.run();
+        });
+        buildSwatches("c1Patient", colorState.cond1.patient, (hex) => {
+          colorState.cond1.patient = hex;
+          r1.run();
+        });
+        buildSwatches("c2Agent", colorState.cond2.agent, (hex) => {
+          colorState.cond2.agent = hex;
+          r4.run();
+        });
+        buildSwatches("c2Patient", colorState.cond2.patient, (hex) => {
+          colorState.cond2.patient = hex;
+          r4.run();
+        });
+        buildSwatches("c3Agent", colorState.cond3.agent, (hex) => {
+          colorState.cond3.agent = hex;
+          rC.run();
+        });
+        buildSwatches("c3Before", colorState.cond3.before, (hex) => {
+          colorState.cond3.before = hex;
+          updatePreview();
+          rC.run();
+        });
+        buildSwatches("c3After", colorState.cond3.after, (hex) => {
+          colorState.cond3.after = hex;
+          updatePreview();
+          rC.run();
+        });
+        updatePreview();
+
+        /* Shape selection handlers */
+        document.querySelectorAll(".shape-btn").forEach((btn) => {
+          btn.addEventListener("click", () => {
+            const shape = btn.dataset.shape;
+            const role = btn.dataset.role;
+
+            // Update selection UI
+            document
+              .querySelectorAll(`.shape-btn[data-role="${role}"]`)
+              .forEach((b) => {
+                b.classList.remove("selected");
+              });
+            btn.classList.add("selected");
+
+            // Update state
+            if (role === "agent") {
+              shapeState.agent = shape;
+            } else {
+              shapeState.patient = shape;
+            }
+            r1.run();
+            r4.run();
+            rC.run();
+          });
+        });
+
+        /* Speed slider handlers */
+        const agentSpeedSlider = document.getElementById("agentSpeedSlider");
+        const agentSpeedVal = document.getElementById("agentSpeedVal");
+        const patientSpeedSlider =
+          document.getElementById("patientSpeedSlider");
+        const patientSpeedVal = document.getElementById("patientSpeedVal");
+
+        agentSpeedSlider.oninput = () => {
+          speedState.agent = +agentSpeedSlider.value;
+          agentSpeedVal.textContent = speedState.agent.toFixed(1) + "x";
+
+          r1.run();
+          r4.run();
+          rC.run();
+        };
+
+        patientSpeedSlider.oninput = () => {
+          speedState.patient = +patientSpeedSlider.value;
+          patientSpeedVal.textContent = speedState.patient.toFixed(1) + "x";
+
+          r1.run();
+          r4.run();
+          rC.run();
+        };
+        /* Size slider handlers */
+        const agentSizeSlider = document.getElementById("agentSizeSlider");
+
+        const patientSizeSlider = document.getElementById("patientSizeSlider");
+
+        const agentSizeVal = document.getElementById("agentSizeVal");
+
+        const patientSizeVal = document.getElementById("patientSizeVal");
+
+        agentSizeSlider.oninput = () => {
+          sizeState.agent = +agentSizeSlider.value;
+
+          agentSizeVal.textContent = sizeState.agent;
+
+          r1.run();
+          r4.run();
+          rC.run();
+        };
+
+        patientSizeSlider.oninput = () => {
+          sizeState.patient = +patientSizeSlider.value;
+
+          patientSizeVal.textContent = sizeState.patient;
+
+          r1.run();
+          r4.run();
+          rC.run();
+        };
+        r1.run();
+        r4.run();
+        rC.run();
+      });
+    </script>
+  </body>
+</html>
