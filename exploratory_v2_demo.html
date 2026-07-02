@@ -1,0 +1,620 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Causal Delay — Condition 10</title>
+    <style>
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+      body {
+        font-family: "Georgia", serif;
+        background: #f4f1ec;
+        color: #333;
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        padding: 28px 16px 70px;
+      }
+      h1 {
+        font-size: 18px;
+        font-weight: normal;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: #6a5a40;
+        margin-bottom: 5px;
+      }
+      .subtitle {
+        font-size: 13px;
+        color: #999;
+        margin-bottom: 24px;
+        letter-spacing: 0.04em;
+        text-align: center;
+        max-width: 700px;
+      }
+      .legend {
+        font-size: 12px;
+        line-height: 1.7;
+        color: #777;
+        max-width: 900px;
+        text-align: center;
+        margin-bottom: 18px;
+        padding: 0 12px;
+      }
+
+      /* ── Sticky delay bar ── */
+      #delayBar {
+        position: sticky;
+        top: 0;
+        z-index: 50;
+        width: 100%;
+        max-width: 1040px;
+        background: #f4f1ec;
+        padding: 14px 18px;
+        border: 1px solid #ddd6c8;
+        border-radius: 8px;
+        margin-bottom: 24px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.04);
+      }
+      .controls {
+        display: flex;
+        align-items: center;
+        gap: 18px;
+        justify-content: center;
+        flex-wrap: wrap;
+      }
+      .ctrl-label {
+        font-size: 13px;
+        color: #777;
+        letter-spacing: 0.04em;
+      }
+      input[type="range"] {
+        -webkit-appearance: none;
+        width: 320px;
+        height: 4px;
+        background: #ddd6c8;
+        border-radius: 2px;
+        outline: none;
+        cursor: pointer;
+      }
+      input[type="range"]::-webkit-slider-thumb {
+        -webkit-appearance: none;
+        width: 18px;
+        height: 18px;
+        border-radius: 50%;
+        background: #b8935a;
+        cursor: pointer;
+      }
+      .delay-readout {
+        font-size: 16px;
+        font-weight: bold;
+        color: #b8935a;
+        min-width: 76px;
+      }
+      .slider-ticks {
+        display: flex;
+        justify-content: space-between;
+        width: 320px;
+        font-size: 10px;
+        color: #aaa;
+        margin: 4px auto 0;
+      }
+      .delay-note {
+        font-size: 11px;
+        color: #aaa;
+        text-align: center;
+        margin-top: 6px;
+      }
+      .delay-note em {
+        color: #b8935a;
+        font-style: normal;
+      }
+
+      /* ── Grid ── */
+      .grid {
+        width: 100%;
+        max-width: 1040px;
+      }
+      .section-heading {
+        font-size: 11px;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        color: #aaa;
+        border-bottom: 1px solid #e4ddd0;
+        padding-bottom: 6px;
+        margin: 22px 0 14px;
+      }
+      .row {
+        display: flex;
+        flex-direction: column;
+        gap: 24px;
+        align-items: center;
+      }
+      .panel {
+        width: 100%;
+        max-width: 760px;
+        position: relative;
+        display: flex;
+        flex-direction: column;
+        background: #fff;
+        border: 1px solid #e8e1d4;
+        border-radius: 10px;
+        padding: 18px;
+      }
+      .panel-label {
+        font-size: 12px;
+        color: #888;
+        text-align: center;
+        margin-bottom: 10px;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        line-height: 1.6;
+      }
+      .cond-num {
+        display: inline-block;
+        font-size: 11px;
+        color: #b8935a;
+        margin-bottom: 2px;
+        font-weight: bold;
+      }
+      .sub {
+        color: #bbb;
+        font-size: 10px;
+        text-transform: none;
+        display: block;
+        margin-top: 2px;
+      }
+      canvas {
+        display: block;
+        width: 100%;
+        height: 280px;
+        border: 1px solid #eee;
+        border-radius: 6px;
+        background: #fafafa;
+      }
+      .panel-controls {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 14px;
+        margin-top: 12px;
+      }
+      .loop-toggle {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 12px;
+        color: #888;
+        cursor: pointer;
+        user-select: none;
+      }
+      .loop-toggle input {
+        width: 15px;
+        height: 15px;
+        accent-color: #b8935a;
+        cursor: pointer;
+      }
+      .status {
+        font-size: 11px;
+        color: #bbb;
+        text-align: center;
+        margin-top: 6px;
+        min-height: 16px;
+        letter-spacing: 0.02em;
+      }
+      .replay-btn {
+        background: transparent;
+        border: 1px solid #ddd6c8;
+        color: #999;
+        font-family: "Georgia", serif;
+        font-size: 11px;
+        padding: 5px 14px;
+        border-radius: 4px;
+        cursor: pointer;
+        letter-spacing: 0.03em;
+        transition:
+          border-color 0.15s,
+          color 0.15s;
+      }
+      .replay-btn:hover {
+        border-color: #b8935a;
+        color: #b8935a;
+      }
+
+      /* ── Fullscreen button ── */
+      .fullscreen-btn {
+        position: fixed;
+        bottom: 20px;
+        right: 20px;
+        width: 48px;
+        height: 48px;
+        background: #b8935a;
+        border: none;
+        border-radius: 50%;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        transition: all 0.2s;
+        z-index: 100;
+      }
+      .fullscreen-btn:hover {
+        background: #a07d48;
+        transform: scale(1.05);
+      }
+      .fullscreen-btn svg {
+        width: 24px;
+        height: 24px;
+        fill: white;
+      }
+
+      /* Fullscreen overlay styles */
+      .fullscreen-overlay {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100vw;
+        height: 100vh;
+        background: #f4f1ec;
+        z-index: 1000;
+        padding: 40px;
+      }
+      .fullscreen-overlay.active {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+      }
+      .fullscreen-overlay canvas {
+        max-width: 90vw;
+        max-height: 70vh;
+        height: auto;
+      }
+      .fullscreen-close {
+        position: absolute;
+        top: 20px;
+        right: 20px;
+        background: transparent;
+        border: 2px solid #b8935a;
+        color: #b8935a;
+        font-family: "Georgia", serif;
+        font-size: 14px;
+        padding: 8px 20px;
+        border-radius: 6px;
+        cursor: pointer;
+        transition: all 0.2s;
+      }
+      .fullscreen-close:hover {
+        background: #b8935a;
+        color: white;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Causal Delay Study</h1>
+    <p class="subtitle">
+      Exploring temporal contiguity in causation: mediated launching
+    </p>
+
+    <!-- Sticky delay bar -->
+    <div id="delayBar">
+      <div class="controls">
+        <span class="ctrl-label">Effect delay:</span>
+        <input
+          type="range"
+          id="delaySlider"
+          min="-200"
+          max="500"
+          value="0"
+          step="50"
+        />
+        <span class="delay-readout" id="delayVal">0 ms</span>
+      </div>
+      <div class="slider-ticks">
+        <span>−200 ms</span>
+        <span>0 ms</span>
+        <span>+500 ms</span>
+      </div>
+      <div class="delay-note">
+        Adjust when the effect (C launch) occurs <em>relative to</em> the causal
+        contact (A–B).
+      </div>
+    </div>
+
+    <p class="legend">
+      <strong>Condition 10 (tool effect):</strong> A classic mediated-causation
+      display. Square A is the cause, rectangle B is the tool/medium, square C
+      is the patient. The key manipulation: there is ZERO direct contact between
+      A and C — B physically separates them. Tests whether people attribute
+      causation to A even without A–C contact, and how the A–B contact →
+      C-launch delay affects that attribution.
+    </p>
+
+    <div class="grid">
+      <div class="section-heading">Condition 10</div>
+      <div class="row">
+        <!-- Condition 10 — tool effect -->
+        <div class="panel">
+          <div class="panel-label">
+            <span class="cond-num">Condition 10</span><br />
+            Tool effect / mediated launching<br />
+            <span class="sub"
+              >Square A slides into rod B · B stays still · Square C launches
+              from B's far end · A and C never touch</span
+            >
+          </div>
+          <canvas id="c10"></canvas>
+          <div class="panel-controls">
+            <label class="loop-toggle"
+              ><input type="checkbox" id="loop10" checked /> Loop</label
+            >
+            <button class="replay-btn" id="replay10">Replay</button>
+          </div>
+          <div class="status" id="st10"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Fullscreen button -->
+    <button class="fullscreen-btn" id="fullscreenBtn" title="View fullscreen">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+        <path
+          d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"
+        />
+      </svg>
+    </button>
+
+    <!-- Fullscreen overlay -->
+    <div class="fullscreen-overlay" id="fullscreenOverlay">
+      <button class="fullscreen-close" id="fullscreenClose">Close</button>
+      <canvas id="c10-fullscreen"></canvas>
+    </div>
+
+    <script>
+      "use strict";
+
+      /* ══════════════════════════════════════════════════════
+   DELAY SLIDER
+══════════════════════════════════════════════════════ */
+      const delaySlider = document.getElementById("delaySlider");
+      const delayValEl = document.getElementById("delayVal");
+      function fmtDelay(v) {
+        return v === 0 ? "0 ms" : (v > 0 ? "+" : "") + v + " ms";
+      }
+      delaySlider.oninput = () =>
+        (delayValEl.textContent = fmtDelay(+delaySlider.value));
+      function getDelay() {
+        return +delaySlider.value;
+      }
+
+      /* ══════════════════════════════════════════════════════
+   CONDITION 10 — TOOL EFFECT / MEDIATED LAUNCHING
+══════════════════════════════════════════════════════ */
+      function makeRunnerTool(canvasEl, statusEl, loopCB) {
+        const SQ = 22; /* square half-side — A and C are 2*SQ squares */
+        const RW = 40; /* rod B half-width */
+        const RH = 22; /* rod B half-height = same as SQ */
+        const GAP = 0; /* NO GAP - shapes touch */
+        const SPEED = 2.8;
+        const COL_A = "#7a9ec9",
+          COL_B = "#9a9a8a",
+          COL_C = "#e8b860",
+          BG = "#fafafa";
+
+        function resize() {
+          canvasEl.width = canvasEl.offsetWidth || 560;
+          canvasEl.height = canvasEl.clientHeight || 280;
+        }
+        resize();
+        let ctx = canvasEl.getContext("2d");
+
+        function W() {
+          return canvasEl.width;
+        }
+        function H() {
+          return canvasEl.height;
+        }
+        function rodCX() {
+          return W() * 0.45;
+        }
+        function rodLeft() {
+          return rodCX() - RW;
+        }
+        function rodRight() {
+          return rodCX() + RW;
+        }
+        const Y = () => H() * 0.5;
+
+        /* A stops when its right face is GAP away from rod's left face */
+        function aStopX() {
+          return rodLeft() - GAP - SQ;
+        } /* A centre x at stop */
+        function aStartX() {
+          return -SQ;
+        }
+
+        /* C starts adjacent (right) to rod's right face */
+        function cStartX() {
+          return rodRight() + GAP + SQ;
+        }
+
+        function framesUntilHit() {
+          return Math.ceil((aStopX() - aStartX()) / SPEED);
+        }
+
+        let state = "idle",
+          aX = 0,
+          cX = 0,
+          cVel = 0,
+          frame = 0,
+          effectFrame = 0,
+          animId = null;
+
+        function drawScene() {
+          ctx.clearRect(0, 0, W(), H());
+          ctx.fillStyle = BG;
+          ctx.fillRect(0, 0, W(), H());
+          const y = Y();
+
+          /* Rod B — always stationary */
+          ctx.fillStyle = COL_B;
+          ctx.fillRect(rodLeft(), y - RH, RW * 2, RH * 2);
+          ctx.fillStyle = "rgba(255,255,255,0.15)";
+          ctx.fillRect(rodLeft(), y - RH, RW * 2, 5);
+          ctx.strokeStyle = "#888";
+          ctx.lineWidth = 1.2;
+          ctx.strokeRect(rodLeft(), y - RH, RW * 2, RH * 2);
+
+          /* Square C (patient) — drawn before A so A is on top at contact */
+          ctx.fillStyle = COL_C;
+          ctx.fillRect(cX - SQ, y - SQ, SQ * 2, SQ * 2);
+          ctx.strokeStyle = "#b0983a";
+          ctx.lineWidth = 1.3;
+          ctx.strokeRect(cX - SQ, y - SQ, SQ * 2, SQ * 2);
+
+          /* Square A (agent) — drawn last, on top */
+          ctx.fillStyle = COL_A;
+          ctx.fillRect(aX - SQ, y - SQ, SQ * 2, SQ * 2);
+          ctx.strokeStyle = "#4a6a8a";
+          ctx.lineWidth = 1.3;
+          ctx.strokeRect(aX - SQ, y - SQ, SQ * 2, SQ * 2);
+        }
+
+        function tick() {
+          frame++;
+          /* Move A toward rod */
+          if (aX < aStopX()) {
+            aX += SPEED;
+            if (aX >= aStopX()) {
+              aX = aStopX();
+              if (state === "approaching") state = "hit";
+            }
+          }
+          /* Trigger C launch */
+          if (
+            (state === "approaching" || state === "hit") &&
+            frame >= effectFrame
+          ) {
+            cVel = SPEED * 1.05;
+            state = "launching";
+            const d = getDelay();
+            statusEl.textContent =
+              d < 0
+                ? `C launches (${d} ms before A–B contact)`
+                : d === 0
+                  ? "C launches (simultaneous with A–B contact)"
+                  : `C launches (+${d} ms after A–B contact)`;
+          }
+          if (state === "launching") {
+            cX += cVel;
+            if (cX > W() + SQ + 10) {
+              state = "done";
+              cancelAnimationFrame(animId);
+              drawScene();
+              if (loopCB.checked) setTimeout(() => run(), 500);
+              return;
+            }
+          }
+          drawScene();
+          animId = requestAnimationFrame(tick);
+        }
+
+        function run() {
+          if (animId) cancelAnimationFrame(animId);
+          resize();
+          ctx = canvasEl.getContext("2d");
+          const FPS = 60,
+            d = getDelay(),
+            hitAt = framesUntilHit();
+          effectFrame = Math.max(1, hitAt + Math.round(d / (1000 / FPS)));
+          state = "approaching";
+          aX = aStartX();
+          cX = cStartX();
+          cVel = 0;
+          frame = 0;
+          statusEl.textContent =
+            d < 0
+              ? `A approaching — C launches ${Math.abs(d)} ms before A–B contact…`
+              : "A approaching B…";
+          drawScene();
+          animId = requestAnimationFrame(tick);
+        }
+        return { run };
+      }
+
+      /* ══════════════════════════════════════════════════════
+   FULLSCREEN FUNCTIONALITY
+══════════════════════════════════════════════════════ */
+      let fullscreenRunner = null;
+
+      function setupFullscreen() {
+        const fullscreenBtn = document.getElementById("fullscreenBtn");
+        const fullscreenOverlay = document.getElementById("fullscreenOverlay");
+        const fullscreenClose = document.getElementById("fullscreenClose");
+        const fullscreenCanvas = document.getElementById("c10-fullscreen");
+        const fullscreenStatus = document.createElement("div");
+        fullscreenStatus.className = "status";
+        fullscreenStatus.style.marginTop = "20px";
+        fullscreenStatus.style.fontSize = "14px";
+        fullscreenOverlay.appendChild(fullscreenStatus);
+
+        const fullscreenLoop = { checked: true };
+
+        fullscreenBtn.addEventListener("click", () => {
+          fullscreenOverlay.classList.add("active");
+          fullscreenCanvas.width = window.innerWidth * 0.9;
+          fullscreenCanvas.height = window.innerHeight * 0.7;
+
+          fullscreenRunner = makeRunnerTool(
+            fullscreenCanvas,
+            fullscreenStatus,
+            fullscreenLoop,
+          );
+          fullscreenRunner.run();
+        });
+
+        fullscreenClose.addEventListener("click", () => {
+          fullscreenOverlay.classList.remove("active");
+          if (fullscreenRunner) {
+            // Stop the animation
+            fullscreenRunner = null;
+          }
+        });
+
+        // Close on Escape key
+        document.addEventListener("keydown", (e) => {
+          if (
+            e.key === "Escape" &&
+            fullscreenOverlay.classList.contains("active")
+          ) {
+            fullscreenClose.click();
+          }
+        });
+      }
+
+      /* ══════════════════════════════════════════════════════
+   INIT
+══════════════════════════════════════════════════════ */
+      window.addEventListener("load", () => {
+        const loop10 = document.getElementById("loop10");
+
+        const r10 = makeRunnerTool(
+          document.getElementById("c10"),
+          document.getElementById("st10"),
+          loop10,
+        );
+
+        document.getElementById("replay10").onclick = () => r10.run();
+
+        r10.run();
+
+        setupFullscreen();
+      });
+    </script>
+  </body>
+</html>
