@@ -1,0 +1,731 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Causal Delay — Color-Change Control (Constant Stimuli)</title>
+    <style>
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+      body {
+        font-family: "Georgia", serif;
+        background: #f4f1ec;
+        color: #333;
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        padding: 28px 16px 70px;
+      }
+      h1 {
+        font-size: 18px;
+        font-weight: normal;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: #6a5a40;
+        margin-bottom: 5px;
+      }
+      .subtitle {
+        font-size: 13px;
+        color: #999;
+        margin-bottom: 20px;
+      }
+      #instructions {
+        max-width: 640px;
+        background: #fff;
+        border: 1px solid #e8e1d4;
+        border-radius: 8px;
+        padding: 14px 18px;
+        font-size: 13px;
+        line-height: 1.6;
+        margin-bottom: 20px;
+      }
+      #instructions b {
+        color: #b8935a;
+      }
+      .panel {
+        width: 100%;
+        max-width: 640px;
+        display: flex;
+        flex-direction: column;
+        background: #fff;
+        border: 1px solid #e8e1d4;
+        border-radius: 10px;
+        padding: 18px;
+      }
+      .panel-label {
+        font-size: 12px;
+        color: #888;
+        text-align: center;
+        margin-bottom: 10px;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+      }
+      canvas {
+        display: block;
+        width: 100%;
+        height: 320px;
+        border: 2px solid #000;
+        border-radius: 6px;
+        background: #fafafa;
+      }
+      #feedbackArea {
+        text-align: center;
+        margin-top: 10px;
+        min-height: 20px;
+        font-size: 14px;
+        color: #b8935a;
+        font-weight: bold;
+      }
+      #progressPanel,
+      #debugPanel,
+      #summaryPanel {
+        width: 100%;
+        max-width: 640px;
+        margin-top: 14px;
+        font-size: 12px;
+        color: #777;
+      }
+      #progressPanel {
+        display: flex;
+        justify-content: space-between;
+      }
+      #debugPanel {
+        color: #bbb;
+      }
+      #debugPanel label {
+        cursor: pointer;
+      }
+      #summaryPanel {
+        display: none;
+        background: #fff;
+        border: 1px solid #e8e1d4;
+        border-radius: 8px;
+        padding: 16px 18px;
+        font-size: 13px;
+        line-height: 1.7;
+      }
+      #summaryPanel button {
+        margin-top: 10px;
+        font-family: "Georgia", serif;
+        font-size: 12px;
+        padding: 6px 14px;
+        border: 1px solid #ddd6c8;
+        border-radius: 4px;
+        background: transparent;
+        color: #b8935a;
+        cursor: pointer;
+      }
+      #submitSliderBtn {
+        font-family: "Georgia", serif;
+        font-size: 12px;
+        padding: 6px 14px;
+        border: 1px solid #ddd6c8;
+        border-radius: 4px;
+        background: transparent;
+        color: #b8935a;
+        cursor: pointer;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Causal Delay — Color-Change Control</h1>
+    <p class="subtitle">
+      Color-change control (scrambled face, no motion confound) &nbsp;·&nbsp;
+      method of constant stimuli (13 offsets × 6 repeats) &nbsp;·&nbsp; causal
+      judgment (probability rating)
+    </p>
+
+    <div id="instructions">
+      On every trial the red ball moves in and stops next to the right ball
+      (right ball does not move). At some point, the right ball's color changes.
+      Your job: judge —
+      <br /><br />
+      <b
+        >"How probable is it that the blue entity caused the change of the
+        yellow entity?"</b
+      >
+      <br /><br />
+      After the clip finishes, a slider will appear ranging from
+      <b>0 ("definitely no")</b> to <b>100 ("definitely yes")</b>, starting at
+      the midpoint labeled <b>"uncertain"</b>. Drag it to your answer and press
+      <b>Submit</b>.
+    </div>
+
+    <div class="panel">
+      <div class="panel-label">Trial <span id="trialNum">0</span></div>
+      <canvas id="expCanvas" width="640" height="320"></canvas>
+      <div id="feedbackArea"></div>
+      <div id="sliderArea" style="display: none; margin-top: 14px">
+        <div style="font-size: 13px; text-align: center; margin-bottom: 6px">
+          How probable is it that the <b>blue entity</b> caused the change of
+          the <b>yellow entity</b>?
+        </div>
+        <input
+          type="range"
+          id="probSlider"
+          min="0"
+          max="100"
+          value="50"
+          style="width: 100%"
+        />
+        <div
+          style="
+            display: flex;
+            justify-content: space-between;
+            font-size: 11px;
+            color: #888;
+            margin-top: 4px;
+          "
+        >
+          <span>0 – Definitely no</span>
+          <span>Uncertain</span>
+          <span>100 – Definitely yes</span>
+        </div>
+        <div style="text-align: center; margin-top: 8px; font-size: 13px">
+          Current answer: <span id="sliderValueDisplay">50 (Uncertain)</span>
+        </div>
+        <div style="text-align: center; margin-top: 8px">
+          <button id="submitSliderBtn">Submit</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="progressPanel">
+      <div>
+        Method of constant stimuli (13 offsets × 12 repeats, randomized):
+        completed <span id="trialsDone">0</span> /
+        <span id="trialsTotal">–</span> trials
+      </div>
+    </div>
+
+    <div id="debugPanel">
+      <label
+        ><input type="checkbox" id="debugToggle" /> Show researcher debug info
+        (hide this for real participants)</label
+      >
+      <span id="debugLine" style="display: none">
+        &nbsp;— current delay: <span id="debugDelay">–</span> ms, trial
+        <span id="debugTrialNum">–</span> of
+        <span id="debugTotal">–</span>
+      </span>
+    </div>
+
+    <div id="summaryPanel">
+      <div><b>Experiment complete.</b></div>
+      <div>Total trials completed: <span id="totalTrialsDone">–</span></div>
+      <div
+        style="margin-top: 10px; padding-top: 10px; border-top: 1px solid #eee"
+      >
+        <b>Mean probability rating by offset</b> (0–100 scale):<br />
+        <div
+          id="offsetSummaryTable"
+          style="font-family: monospace; white-space: pre; margin-top: 6px"
+        ></div>
+      </div>
+      <button id="downloadBtn">Download trial-by-trial data (CSV)</button>
+    </div>
+
+    <script>
+      "use strict";
+
+      /* ══════════════════════════════════════════════════════
+         METHOD OF CONSTANT STIMULI
+         13 fixed temporal offsets, equal separation within each
+         group (Jones & Tan, 2012): six negative offsets 14ms apart,
+         zero, and six positive offsets 100ms apart. Each offset is
+         repeated REPEATS_PER_OFFSET times per block; the full trial
+         list is built once and shuffled into a single randomized
+         order (no adaptive step size, no reversals — replaces the
+         two interleaved staircases used previously).
+      ══════════════════════════════════════════════════════ */
+      const NEGATIVE_OFFSETS_MS = [-84, -70, -56, -42, -28, -14];
+      const ZERO_OFFSET_MS = [0];
+      const POSITIVE_OFFSETS_MS = [100, 200, 300, 400, 500, 600];
+      const ALL_OFFSETS_MS = [
+        ...NEGATIVE_OFFSETS_MS,
+        ...ZERO_OFFSET_MS,
+        ...POSITIVE_OFFSETS_MS,
+      ]; // 13 offsets total
+      const REPEATS_PER_OFFSET = 6; // per block
+
+      function shuffle(arr) {
+        const a = arr.slice();
+        for (let i = a.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [a[i], a[j]] = [a[j], a[i]];
+        }
+        return a;
+      }
+
+      function buildTrialList() {
+        const list = [];
+        ALL_OFFSETS_MS.forEach((offset) => {
+          for (let r = 0; r < REPEATS_PER_OFFSET; r++) list.push(offset);
+        });
+        return shuffle(list);
+      }
+
+      const trialList = buildTrialList(); // 13 * 12 = 156 trials, randomized order
+      const TOTAL_TRIALS = trialList.length;
+      let trialIndex = 0;
+
+      /* ══════════════════════════════════════════════════════
+         FIXED STIMULUS PARAMETERS
+         Real-world sizes/speed are converted to canvas pixels via a
+         single MM_TO_PX scale factor so size and speed stay
+         internally consistent. (MM_TO_PX is just a fixed demo scale
+         for this 640×320 canvas — for a real study, derive it from
+         the actual monitor's pixel pitch and the participant's
+         viewing distance so 26mm truly subtends ~1.89°, etc.)
+         - Each circle: 26 mm diameter (≈1.89° visual angle)
+         - Agent speed: 180 mm/s (≈13.2°/s)
+      ══════════════════════════════════════════════════════ */
+      const FPS = 60;
+      const MM_TO_PX = 2;
+      const BALL_DIAMETER_MM = 26;
+      const BALL_RADIUS_MM = BALL_DIAMETER_MM / 2; // 13 mm
+      const BALL_SPEED_MM_PER_S = 180;
+
+      const BALL_RADIUS_PX = BALL_RADIUS_MM * MM_TO_PX; // 26 px
+      const BALL_SPEED_PX_PER_FRAME = (BALL_SPEED_MM_PER_S * MM_TO_PX) / FPS; // 6 px/frame
+
+      const AGENT_COLOR = "#7a9ec9"; // blue — causal agent (moving ball)
+      const PATIENT_BEFORE_COLOR = "#e8b860"; // yellow — patient's starting color
+      const PATIENT_AFTER_COLOR = "#d9534f"; // red — patient's color after the change
+      function getAgentSize() {
+        return BALL_RADIUS_PX;
+      }
+      function getPatientSize() {
+        return BALL_RADIUS_PX;
+      }
+      function getAgentSpeed() {
+        return BALL_SPEED_PX_PER_FRAME;
+      }
+      function getAgentShape() {
+        return "circle";
+      }
+      function getPatientShape() {
+        return "circle";
+      }
+
+      /* ══════════════════════════════════════════════════════
+         DRAWING PRIMITIVES — copied verbatim from the uploaded
+         prototype (drawBall / drawScrambledFace / makeLayout)
+      ══════════════════════════════════════════════════════ */
+      function drawBall(ctx, x, y, r, col, shape = "circle") {
+        ctx.fillStyle = col;
+        ctx.strokeStyle = col;
+        ctx.lineWidth = 1.5;
+        if (shape === "square") {
+          ctx.beginPath();
+          ctx.rect(x - r, y - r, r * 2, r * 2);
+          ctx.fill();
+          ctx.stroke();
+        } else {
+          ctx.beginPath();
+          ctx.arc(x, y, r, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.stroke();
+        }
+      }
+      /* ══════════════════════════════════════════════════════
+         SCRAMBLED FACE — extracted verbatim from the "Color-change
+         control" condition in the uploaded prototype. A schematic,
+         non-expressive face (no happy/sad state) whose colored
+         elements pick up whatever `baseCol` the patient ball
+         currently has.
+      ══════════════════════════════════════════════════════ */
+      function drawScrambledFace(ctx, bx, by, r, baseCol) {
+        /* ── exact constants from Cond 2 ── */
+        const scR = r * 0.22; // eye sclera radius  (drawEye)
+        const pR = scR * 0.48; // pupil radius       (drawEye)
+
+        const mouthR = r * 0.28; // mouth arc radius   (drawFaceUpright)
+        const noseHalfBase = r * 0.08;
+        const noseHeight = r * 0.14;
+
+        /* ── vertical layout on centre line ── */
+        const eyeGap = scR * 1.65;
+        const eyeY1 = by - eyeGap; // upper white circle centre
+        const eyeY2 = by + eyeGap * 0.8; // lower white circle centre (V position)
+
+        // Mouth arc: arc drawn at (bx, mouthArcCY) with radius mouthR
+        const mouthArcCY = eyeY1 - scR * 2.2 - mouthR * 0.87;
+        // Bottom-most point of the arch (it opens downward like a smile)
+        const mouthBottom = mouthArcCY + mouthR;
+
+        // V-shape: base at noseY, apex (tip) at noseY - noseHeight
+        const noseY = by + r - noseHeight - 0.2; // -2 gives a small gap from the edge
+        const noseTip = noseY - noseHeight; // topmost point of V
+
+        /* ── relocated black pupils (screen-space, on centre line x=bx) ──
+           Upper pupil: midpoint between bottom of arch and top of upper white circle.
+           Lower pupil: midpoint between bottom of lower white circle and top of V. */
+        const upperPupilY = 2.5 + (mouthBottom + (eyeY1 - scR)) / 2;
+        const lowerPupilY = -2.5 + (eyeY2 + scR + noseTip) / 2;
+
+        /* ── clip to ball ── */
+        ctx.save();
+        ctx.beginPath();
+        ctx.arc(bx, by, r - 0.5, 0, Math.PI * 2);
+        ctx.clip();
+
+        /* ════ MOUTH — smile arch opening downward ════ */
+        ctx.save();
+        ctx.beginPath();
+        ctx.arc(bx, mouthArcCY, mouthR, Math.PI * 0.12, Math.PI * 0.88);
+        ctx.strokeStyle = "#444";
+        ctx.lineWidth = 1.4;
+        ctx.lineCap = "round";
+        ctx.stroke();
+        ctx.restore();
+
+        /* ════ EYE-1 (upper white circle) ════
+           Full black outline on both the white sclera and the patient-colored dot. */
+        ctx.save();
+        /* 1. Fill white sclera */
+        ctx.beginPath();
+        ctx.arc(bx, eyeY1, scR, 0, Math.PI * 2);
+        ctx.fillStyle = "#fff";
+        ctx.fill();
+        /* 2. Fill patient-colored dot (north inner edge) */
+        ctx.beginPath();
+        ctx.arc(bx, eyeY1 - (scR - pR), pR, 0, Math.PI * 2);
+        ctx.fillStyle = baseCol;
+        ctx.fill();
+        /* 3. Full black outline on sclera */
+        ctx.beginPath();
+        ctx.arc(bx, eyeY1, scR, 0, Math.PI * 2);
+        ctx.strokeStyle = "#444";
+        ctx.lineWidth = 1.0;
+        ctx.stroke();
+        /* 4. Full black outline on patient-colored dot */
+        ctx.beginPath();
+        ctx.arc(bx, eyeY1 - (scR - pR), pR, 0, Math.PI * 2);
+        ctx.strokeStyle = "#444";
+        ctx.lineWidth = 1.0;
+        ctx.stroke();
+        ctx.restore();
+
+        /* ════ UPPER BLACK PUPIL — between arch bottom and upper white circle ════ */
+        ctx.beginPath();
+        ctx.arc(bx, upperPupilY, pR, 0, Math.PI * 2);
+        ctx.fillStyle = "#222";
+        ctx.fill();
+        /* Specular highlight */
+        ctx.beginPath();
+        ctx.arc(
+          bx - pR * 0.28,
+          upperPupilY - pR * 0.28,
+          pR * 0.22,
+          0,
+          Math.PI * 2,
+        );
+        ctx.fillStyle = "rgba(255,255,255,0.85)";
+        ctx.fill();
+
+        /* ════ EYE-2 (lower white circle) ════
+           Full black outline on both the white sclera and the patient-colored dot. */
+        ctx.save();
+        /* 1. Fill white sclera */
+        ctx.beginPath();
+        ctx.arc(bx, eyeY2, scR, 0, Math.PI * 2);
+        ctx.fillStyle = "#fff";
+        ctx.fill();
+        /* 2. Fill patient-colored dot (south inner edge) */
+        ctx.beginPath();
+        ctx.arc(bx, eyeY2 + (scR - pR), pR, 0, Math.PI * 2);
+        ctx.fillStyle = baseCol;
+        ctx.fill();
+        /* 3. Full black outline on sclera */
+        ctx.beginPath();
+        ctx.arc(bx, eyeY2, scR, 0, Math.PI * 2);
+        ctx.strokeStyle = "#444";
+        ctx.lineWidth = 1.0;
+        ctx.stroke();
+        /* 4. Full black outline on patient-colored dot */
+        ctx.beginPath();
+        ctx.arc(bx, eyeY2 + (scR - pR), pR, 0, Math.PI * 2);
+        ctx.strokeStyle = "#444";
+        ctx.lineWidth = 1.0;
+        ctx.stroke();
+        ctx.restore();
+
+        /* ════ LOWER BLACK PUPIL — between lower white circle and V tip ════ */
+        ctx.beginPath();
+        ctx.arc(bx, lowerPupilY, pR, 0, Math.PI * 2);
+        ctx.fillStyle = "#222";
+        ctx.fill();
+        /* Specular highlight */
+        ctx.beginPath();
+        ctx.arc(
+          bx - pR * 0.28,
+          lowerPupilY - pR * 0.28,
+          pR * 0.22,
+          0,
+          Math.PI * 2,
+        );
+        ctx.fillStyle = "rgba(255,255,255,0.85)";
+        ctx.fill();
+
+        /* ════ NOSE — two separate lines, same length & thickness as upright V ════
+           Upright V leg vector: (±r*0.08, r*0.14) → unit dir (±0.496, 0.868)
+           leg length L = r * sqrt(0.08²+0.14²) = r * 0.1612
+           Bottom ends spread to ±r*0.38 (inside ball), touching near bottom rim.
+           Top points computed by walking back along the same direction vector. */
+        const legL = r * Math.sqrt(0.08 * 0.08 + 0.14 * 0.14); // same length as upright V
+        const spread = r * 0.38; // horizontal spread — further apart, still inside ball
+        const legDX = r * 0.08; // original horizontal component
+        const legDY = r * 0.14; // original vertical component
+        const legLen0 = Math.sqrt(legDX * legDX + legDY * legDY);
+        const ux = legDX / legLen0; // unit x (= 0.496)
+        const uy = legDY / legLen0; // unit y (= 0.868)
+        const noseBottomY = by + r - 6;
+
+        ctx.save();
+        ctx.strokeStyle = "#444";
+        ctx.lineWidth = 1.4; // same as upright V
+        ctx.lineCap = "round"; // same as upright V
+        /* Left leg — bottom end at (bx - spread, noseBottomY), walk up-right by legL */
+        ctx.beginPath();
+        ctx.moveTo(bx - spread + ux * legL, noseBottomY - uy * legL);
+        ctx.lineTo(bx - spread, noseBottomY);
+        ctx.stroke();
+        /* Right leg — bottom end at (bx + spread, noseBottomY), walk up-left by legL */
+        ctx.beginPath();
+        ctx.moveTo(bx + spread - ux * legL, noseBottomY - uy * legL);
+        ctx.lineTo(bx + spread, noseBottomY);
+        ctx.stroke();
+        ctx.restore();
+
+        ctx.restore(); // un-clip
+      }
+      function makeLayout(canvasEl, R) {
+        function W() {
+          return canvasEl.width;
+        }
+        function agentX0() {
+          return W() * 0.68;
+        }
+        function causeX0() {
+          return W() * 0.12;
+        }
+        function causeStopX() {
+          return agentX0() - getAgentSize() - getPatientSize() - 2;
+        }
+        const Y = canvasEl.height * 0.5;
+        function framesUntilHit() {
+          return Math.ceil((causeStopX() - causeX0()) / getAgentSpeed());
+        }
+        return { W, agentX0, causeX0, causeStopX, Y, framesUntilHit };
+      }
+
+      /* ══════════════════════════════════════════════════════
+         SINGLE-TRIAL RUNNER
+         Takes an explicit delay (the current trial's offset from
+         trialList), runs once, and calls onComplete() when the trial
+         ends (no auto-loop; the trial loop drives trial-to-trial
+         pacing).
+      ══════════════════════════════════════════════════════ */
+      function runColorChangeTrial(canvasEl, delayMs, onComplete) {
+        const R = BALL_RADIUS_PX;
+        canvasEl.width = canvasEl.offsetWidth || 640;
+        canvasEl.height = canvasEl.clientHeight || 320;
+        const ctx = canvasEl.getContext("2d");
+        const BG = "#fafafa";
+        const L = makeLayout(canvasEl, R);
+        const hitAt = L.framesUntilHit();
+        const effectFrame = Math.max(
+          1,
+          hitAt + Math.round(delayMs / (1000 / FPS)),
+        );
+
+        let causeX = L.causeX0(),
+          currentCol = PATIENT_BEFORE_COLOR,
+          state = "approaching"; // approaching -> hit -> changed -> done
+        let frame = 0,
+          animId = null;
+
+        function drawScene() {
+          ctx.clearRect(0, 0, L.W(), canvasEl.height);
+          ctx.fillStyle = BG;
+          ctx.fillRect(0, 0, L.W(), canvasEl.height);
+          const px = L.agentX0();
+          drawBall(
+            ctx,
+            px,
+            L.Y,
+            getPatientSize(),
+            currentCol,
+            getPatientShape(),
+          );
+          drawScrambledFace(ctx, px, L.Y, getPatientSize(), currentCol);
+          drawBall(
+            ctx,
+            causeX,
+            L.Y,
+            getAgentSize(),
+            AGENT_COLOR,
+            getAgentShape(),
+          );
+        }
+
+        function tick() {
+          frame++;
+          if (causeX < L.causeStopX()) {
+            causeX += getAgentSpeed();
+            if (causeX >= L.causeStopX()) {
+              causeX = L.causeStopX();
+              if (state === "approaching") state = "hit";
+            }
+          }
+          if (
+            (state === "approaching" || state === "hit") &&
+            frame >= effectFrame
+          ) {
+            currentCol = PATIENT_AFTER_COLOR;
+            state = "changed";
+          }
+          if (state === "changed" && frame > effectFrame + 60 * 1.4) {
+            state = "done";
+            cancelAnimationFrame(animId);
+            drawScene();
+            onComplete();
+            return;
+          }
+          drawScene();
+          animId = requestAnimationFrame(tick);
+        }
+
+        drawScene();
+        animId = requestAnimationFrame(tick);
+      }
+
+      /* ══════════════════════════════════════════════════════
+         TRIAL LOOP
+         Walks through the shuffled trialList built above (method of
+         constant stimuli), one offset per trial, in the fixed
+         randomized order — no adaptive logic, no reversals.
+      ══════════════════════════════════════════════════════ */
+
+      let trialLog = [];
+      let awaitingResponse = false;
+      let activeDelay = null;
+
+      const sliderArea = document.getElementById("sliderArea");
+      const probSlider = document.getElementById("probSlider");
+      const sliderValueDisplay = document.getElementById("sliderValueDisplay");
+      const submitSliderBtn = document.getElementById("submitSliderBtn");
+
+      function updateSliderDisplay() {
+        const v = Number(probSlider.value);
+        sliderValueDisplay.textContent =
+          v === 50 ? "50 (Uncertain)" : String(v);
+      }
+      probSlider.addEventListener("input", updateSliderDisplay);
+      submitSliderBtn.addEventListener("click", () => {
+        handleResponse(Number(probSlider.value));
+      });
+
+      function updateProgressUI() {
+        document.getElementById("trialsDone").textContent = trialLog.length;
+      }
+
+      function nextTrial() {
+        if (trialIndex >= trialList.length) {
+          finishExperiment();
+          return;
+        }
+
+        activeDelay = trialList[trialIndex];
+        trialIndex++;
+
+        document.getElementById("trialNum").textContent = trialIndex;
+        document.getElementById("feedbackArea").textContent = "";
+        document.getElementById("debugDelay").textContent = activeDelay;
+        document.getElementById("debugTrialNum").textContent = trialIndex;
+        document.getElementById("debugTotal").textContent = TOTAL_TRIALS;
+
+        awaitingResponse = false;
+        runColorChangeTrial(
+          document.getElementById("expCanvas"),
+          activeDelay,
+          () => {
+            awaitingResponse = true;
+            probSlider.value = 50;
+            updateSliderDisplay();
+            sliderArea.style.display = "block";
+            probSlider.focus();
+          },
+        );
+      }
+
+      function handleResponse(rating) {
+        if (!awaitingResponse) return;
+        awaitingResponse = false;
+        sliderArea.style.display = "none";
+
+        trialLog.push({
+          trial: trialLog.length + 1,
+          delay_ms: activeDelay,
+          probability_rating: rating,
+        });
+
+        document.getElementById("feedbackArea").textContent = "Recorded.";
+        updateProgressUI();
+
+        setTimeout(nextTrial, 600); // brief ITI
+      }
+
+      function finishExperiment() {
+        document.getElementById("feedbackArea").textContent =
+          "Experiment complete!";
+        document.getElementById("totalTrialsDone").textContent =
+          trialLog.length;
+
+        // Per-offset mean probability rating (raw block summary; fit a
+        // psychometric function to the downloaded CSV for the real analysis).
+        const lines = ALL_OFFSETS_MS.map((offset) => {
+          const ratings = trialLog
+            .filter((t) => t.delay_ms === offset)
+            .map((t) => t.probability_rating);
+          const mean = ratings.length
+            ? (ratings.reduce((a, b) => a + b, 0) / ratings.length).toFixed(1)
+            : "n/a";
+          return `${String(offset).padStart(5, " ")} ms  →  mean rating = ${mean}  (n=${ratings.length})`;
+        });
+        document.getElementById("offsetSummaryTable").textContent =
+          lines.join("\n");
+
+        document.getElementById("summaryPanel").style.display = "block";
+      }
+
+      document.getElementById("downloadBtn").onclick = () => {
+        const header = "trial,delay_ms,probability_rating\n";
+        const rows = trialLog
+          .map((t) => `${t.trial},${t.delay_ms},${t.probability_rating}`)
+          .join("\n");
+        const blob = new Blob([header + rows], { type: "text/csv" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = "causal_judgment_color_change_data.csv";
+        a.click();
+        URL.revokeObjectURL(url);
+      };
+
+      document.getElementById("debugToggle").onchange = (e) => {
+        document.getElementById("debugLine").style.display = e.target.checked
+          ? "inline"
+          : "none";
+      };
+
+      document.getElementById("trialsTotal").textContent = TOTAL_TRIALS;
+
+      window.addEventListener("load", nextTrial);
+    </script>
+  </body>
+</html>
