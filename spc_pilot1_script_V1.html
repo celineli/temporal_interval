@@ -1,0 +1,1444 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>
+      Causal Delay — Pilot Experiment (Intact vs. Scrambled Face, Single Rep)
+    </title>
+    <style>
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+      body {
+        font-family: "Georgia", serif;
+        background: #f4f1ec;
+        color: #333;
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        padding: 28px 16px 70px;
+      }
+      h1 {
+        font-size: 18px;
+        font-weight: normal;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: #6a5a40;
+        margin-bottom: 5px;
+      }
+      .subtitle {
+        font-size: 13px;
+        color: #999;
+        margin-bottom: 20px;
+      }
+      #instructions {
+        max-width: 640px;
+        background: #fff;
+        border: 1px solid #e8e1d4;
+        border-radius: 8px;
+        padding: 14px 18px;
+        font-size: 13px;
+        line-height: 1.6;
+        margin-bottom: 20px;
+      }
+      #instructions b {
+        color: #b8935a;
+      }
+      .panel {
+        width: 100%;
+        max-width: 640px;
+        display: flex;
+        flex-direction: column;
+        background: #fff;
+        border: 1px solid #e8e1d4;
+        border-radius: 10px;
+        padding: 18px;
+      }
+      #keypressInstruction {
+        text-align: center;
+        font-size: 14px;
+        font-weight: bold;
+        color: #b8935a;
+        margin-bottom: 10px;
+        min-height: 20px;
+      }
+      canvas {
+        display: block;
+        width: 100%;
+        height: 320px;
+        border: 2px solid #000;
+        border-radius: 6px;
+        background: #fafafa;
+      }
+      #feedbackArea {
+        text-align: center;
+        margin-top: 10px;
+        min-height: 20px;
+        font-size: 14px;
+        color: #b8935a;
+        font-weight: bold;
+      }
+      #progressPanel,
+      #debugPanel,
+      #summaryPanel {
+        width: 100%;
+        max-width: 640px;
+        margin-top: 14px;
+        font-size: 12px;
+        color: #777;
+      }
+      #debugPanel {
+        color: #bbb;
+      }
+      #debugPanel label {
+        cursor: pointer;
+      }
+      #summaryPanel {
+        display: none;
+      }
+      #startExperimentButtonWrap {
+        text-align: center;
+        margin-bottom: 20px;
+      }
+      #startExperimentBtn {
+        font-family: "Georgia", serif;
+        font-size: 15px;
+        font-weight: bold;
+        padding: 10px 22px;
+        border: 1px solid #ddd6c8;
+        border-radius: 6px;
+        background: #b8935a;
+        color: #fff;
+        cursor: pointer;
+      }
+      #startExperimentBtn:hover {
+        background: #a37f47;
+      }
+      #startExperimentBtn:active {
+        background: #8f6d3c;
+      }
+      #finalQuestionsPanel {
+        display: none;
+        width: 100%;
+        max-width: 640px;
+        margin-top: 14px;
+        background: #fff;
+        border: 1px solid #e8e1d4;
+        border-radius: 8px;
+        padding: 16px 18px;
+        font-size: 13px;
+        line-height: 1.6;
+      }
+      #finalQuestionsPanel textarea {
+        width: 100%;
+        min-height: 60px;
+        margin-top: 6px;
+        margin-bottom: 14px;
+        font-family: "Georgia", serif;
+        font-size: 13px;
+        padding: 8px;
+        border: 1px solid #ddd6c8;
+        border-radius: 4px;
+        resize: vertical;
+      }
+      #finalSubmitBtn {
+        font-family: "Georgia", serif;
+        font-size: 14px;
+        font-weight: bold;
+        padding: 8px 18px;
+        border: 1px solid #ddd6c8;
+        border-radius: 6px;
+        background: #b8935a;
+        color: #fff;
+        cursor: pointer;
+      }
+      #thankYouPanel {
+        display: none;
+        width: 100%;
+        max-width: 640px;
+        margin-top: 14px;
+        text-align: center;
+        font-size: 15px;
+        color: #6a5a40;
+      }
+
+      /* ── Slider: empty bar with no fill or thumb until the participant
+             interacts with it. The fill/track color is painted manually
+             via JS (background gradient) — the native track and progress
+             pseudo-elements are made transparent so they never show a
+             grey "unfilled" segment or a colored "filled" segment on
+             their own. ── */
+      #probSlider {
+        width: 100%;
+        -webkit-appearance: none;
+        appearance: none;
+        height: 4px;
+        border-radius: 2px;
+        outline: none;
+        background: #ddd6c8; /* flat, empty bar — no neutral starting point */
+      }
+      #probSlider::-webkit-slider-runnable-track {
+        background: transparent;
+        height: 4px;
+        border-radius: 2px;
+      }
+      #probSlider::-moz-range-track {
+        background: transparent;
+        height: 4px;
+        border-radius: 2px;
+      }
+      #probSlider::-moz-range-progress {
+        background: transparent;
+      }
+      #probSlider::-webkit-slider-thumb {
+        -webkit-appearance: none;
+        width: 16px;
+        height: 16px;
+        border-radius: 50%;
+        background: #b8935a;
+        cursor: pointer;
+        margin-top: -6px;
+      }
+      #probSlider::-moz-range-thumb {
+        width: 16px;
+        height: 16px;
+        border: none;
+        border-radius: 50%;
+        background: #b8935a;
+        cursor: pointer;
+      }
+      #probSlider.slider-hidden-thumb::-webkit-slider-thumb {
+        opacity: 0;
+      }
+      #probSlider.slider-hidden-thumb::-moz-range-thumb {
+        opacity: 0;
+      }
+      #probSlider:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+      #submitSliderBtn {
+        font-family: "Georgia", serif;
+        font-size: 12px;
+        padding: 6px 14px;
+        border: 1px solid #ddd6c8;
+        border-radius: 4px;
+        background: transparent;
+        color: #b8935a;
+        cursor: pointer;
+      }
+      #submitSliderBtn:disabled {
+        color: #ccc;
+        border-color: #eee;
+        cursor: not-allowed;
+      }
+
+      /* ── Attention-check panel (comprehension checks) ── */
+      #attentionCheckPanel {
+        display: none;
+      }
+      #acQuestionText {
+        font-size: 14px;
+        font-weight: bold;
+        text-align: center;
+        color: #333;
+        margin-bottom: 16px;
+        line-height: 1.5;
+      }
+      .ac-buttons {
+        display: flex;
+        justify-content: center;
+        gap: 16px;
+      }
+      .ac-btn {
+        font-family: "Georgia", serif;
+        font-size: 14px;
+        padding: 10px 30px;
+        border: 2px solid #ddd6c8;
+        border-radius: 6px;
+        background: #fff;
+        color: #555;
+        cursor: pointer;
+        transition:
+          border-color 0.15s,
+          background 0.15s,
+          color 0.15s;
+      }
+      .ac-btn:hover {
+        border-color: #b8935a;
+      }
+      .ac-btn.selected {
+        border-color: #b8935a;
+        background: #fbf3e6;
+        color: #8f6d3c;
+        font-weight: bold;
+      }
+      #acSubmitBtn {
+        font-family: "Georgia", serif;
+        font-size: 14px;
+        font-weight: bold;
+        padding: 8px 18px;
+        border: 1px solid #ddd6c8;
+        border-radius: 6px;
+        background: #b8935a;
+        color: #fff;
+        cursor: pointer;
+      }
+      #acSubmitBtn:disabled {
+        background: #ddd6c8;
+        color: #fff;
+        cursor: not-allowed;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="instructions">
+      <p>
+        In this experiment, you will see some animations. Watch each animation
+        carefully, as you will only be able to watch it once. In each animation,
+        something will happen to a blue thing and something will happen to a
+        yellow thing. Your job is to indicate how much you think the change in
+        the blue thing caused the change in the yellow thing.
+      </p>
+      <p>
+        Before each animation plays, press the <b>1</b> key on your keyboard
+        when you are ready to watch it. After each animation, you will rate what
+        you saw by clicking and dragging the slider.
+      </p>
+      <p>
+        The experiment will take only a few minutes, so please stay focused
+        throughout.
+      </p>
+      <p>
+        When you're ready, click "Start Experiment" to begin. By starting this
+        study, you are providing your consent to participate in this research.
+        Your participation is voluntary and you can stop at any time.
+      </p>
+      <p style="font-size: 11px; color: #999">
+        (Note: When the experiment is done, you will be told it is done, and
+        then you can click the 'submit' button. If that fails to work, your
+        responses will be submitted automatically after a few minutes.)
+      </p>
+    </div>
+
+    <div id="startExperimentButtonWrap">
+      <button id="startExperimentBtn">Start Experiment</button>
+    </div>
+
+    <div class="panel" id="mainTrialPanel">
+      <div id="keypressInstruction" style="visibility: hidden">
+        Press 1 on your keyboard when you are ready to watch the animation.
+      </div>
+      <canvas id="expCanvas" width="640" height="320"></canvas>
+      <div id="feedbackArea"></div>
+      <div id="sliderArea" style="display: none; margin-top: 14px">
+        <div style="font-size: 13px; text-align: center; margin-bottom: 6px">
+          To what extent did it look like the blue thing caused the yellow thing
+          to change?
+        </div>
+        <input
+          type="range"
+          id="probSlider"
+          class="slider-hidden-thumb"
+          min="0"
+          max="100"
+          value="50"
+          disabled
+        />
+        <div
+          style="
+            display: flex;
+            justify-content: space-between;
+            font-size: 11px;
+            color: #888;
+            margin-top: 4px;
+          "
+        >
+          <span>Not at all</span>
+          <span>Slightly</span>
+          <span>Somewhat</span>
+          <span>Moderately</span>
+          <span>Extremely</span>
+        </div>
+        <div style="text-align: center; margin-top: 8px">
+          <button id="submitSliderBtn" disabled>Submit</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel" id="attentionCheckPanel">
+      <div id="acQuestionText"></div>
+      <div class="ac-buttons">
+        <button id="acLeftBtn" class="ac-btn" type="button">Left</button>
+        <button id="acRightBtn" class="ac-btn" type="button">Right</button>
+      </div>
+      <div style="text-align: center; margin-top: 16px">
+        <button id="acSubmitBtn" disabled>Submit</button>
+      </div>
+    </div>
+
+    <div id="debugPanel">
+      <label
+        ><input type="checkbox" id="debugToggle" /> Show researcher debug info
+        (hide this for real participants)</label
+      >
+      <span id="debugLine" style="display: none">
+        &nbsp;— block: <span id="debugCondition">–</span>, direction:
+        <span id="debugDirection">–</span>, delay:
+        <span id="debugDelay">–</span> ms, trial
+        <span id="debugTrialNum">–</span> of
+        <span id="debugTotal">–</span>
+      </span>
+    </div>
+
+    <div id="finalQuestionsPanel">
+      <div><b>The experiment is done!</b></div>
+      <p>Before you finish, please answer two quick questions:</p>
+      <label for="q1Response"
+        >1. What do you think the experiment was about?</label
+      >
+      <textarea id="q1Response"></textarea>
+      <label for="q2Response">2. What strategies did you use?</label>
+      <textarea id="q2Response"></textarea>
+      <div style="text-align: center">
+        <button id="finalSubmitBtn">Submit</button>
+      </div>
+    </div>
+
+    <div id="thankYouPanel">
+      <div><b>Thank you! Your responses have been recorded.</b></div>
+      <div style="margin-top: 8px">
+        <button id="downloadBtn">Download trial-by-trial data (CSV)</button>
+      </div>
+    </div>
+
+    <script>
+      "use strict";
+
+      /* ══════════════════════════════════════════════════════
+         WITHIN-SUBJECT BLOCKED DESIGN
+         Two conditions (blocks): "intact" (upright neutral face,
+         color change) and "scrambled" (rotated scrambled face,
+         color change). Each block contains all 17 fixed offsets,
+         each shown once, shuffled within the block. Block order is
+         randomized per participant so order is counterbalanced
+         across participants.
+      ══════════════════════════════════════════════════════ */
+      const ALL_OFFSETS_MS = [
+        -1000, -750, -500, -250, -100, -50, -33, -17, 0, 17, 33, 50, 100, 250,
+        500, 750, 1000,
+      ]; // 17 offsets
+      const REPEATS_PER_OFFSET = 1; // per block → 17 trials/block, 34 total
+
+      function shuffle(arr) {
+        const a = arr.slice();
+        for (let i = a.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [a[i], a[j]] = [a[j], a[i]];
+        }
+        return a;
+      }
+
+      function buildBlockTrials(condition) {
+        const list = [];
+        ALL_OFFSETS_MS.forEach((offset) => {
+          for (let r = 0; r < REPEATS_PER_OFFSET; r++) list.push(offset);
+        });
+        const delays = shuffle(list); // 34 entries
+
+        /* Half the trials in this block have the blue ball start on the
+           left and approach the yellow ball on the right ("LR"); the
+           other half start on the right and approach on the left
+           ("RL"). Shuffled independently so the pairing with delay is
+           random, but the block always ends up as close to half/half
+           as possible (with an odd trial count, the one extra trial's
+           direction is decided at random). */
+        const halfLo = Math.floor(delays.length / 2);
+        const halfHi = delays.length - halfLo;
+        const counts =
+          Math.random() < 0.5
+            ? { LR: halfLo, RL: halfHi }
+            : { LR: halfHi, RL: halfLo };
+        const directions = shuffle(
+          Array(counts.LR).fill("LR").concat(Array(counts.RL).fill("RL")),
+        );
+
+        return delays.map((delay, i) => ({
+          condition,
+          delay,
+          direction: directions[i],
+        }));
+      }
+
+      function buildTrialList() {
+        const blockOrder =
+          Math.random() < 0.5
+            ? ["intact", "scrambled"]
+            : ["scrambled", "intact"];
+        let list = [];
+        blockOrder.forEach((cond, i) => {
+          const blockTrials = buildBlockTrials(cond).map((t) => ({
+            ...t,
+            block: i + 1,
+          }));
+          list = list.concat(blockTrials);
+        });
+        return { list, blockOrder };
+      }
+
+      const { list: trialList, blockOrder } = buildTrialList();
+      const TOTAL_TRIALS = trialList.length; // 68
+      let trialIndex = 0;
+
+      /* ══════════════════════════════════════════════════════
+         ATTENTION CHECKS
+         After the 50%-point trial and after the last trial of each
+         block, insert ONE comprehension check about the trial just
+         completed. The question alternates yellow/blue across
+         checkpoints in the fixed order they occur (1st checkpoint:
+         yellow, 2nd: blue, 3rd: yellow, 4th: blue, ...). Checkpoints
+         are keyed by "number of real trials completed so far" — e.g.
+         for two 17-trial blocks: 8→yellow, 17→blue, 25→yellow,
+         34→blue.
+      ══════════════════════════════════════════════════════ */
+      function computeAttentionCheckpoints(list) {
+        const positions = [];
+        const blockNums = [...new Set(list.map((t) => t.block))].sort(
+          (a, b) => a - b,
+        );
+        let cumulative = 0;
+        blockNums.forEach((b) => {
+          const len = list.filter((t) => t.block === b).length;
+          const half = Math.floor(len / 2);
+          positions.push(cumulative + half); // 50% point
+          positions.push(cumulative + len); // 100% point (end of block)
+          cumulative += len;
+        });
+        const checkpointMap = new Map();
+        positions.forEach((pos, i) => {
+          checkpointMap.set(
+            pos,
+            i % 2 === 0 ? "yellow_position" : "blue_position",
+          );
+        });
+        return checkpointMap;
+      }
+      const attentionCheckpoints = computeAttentionCheckpoints(trialList);
+
+
+      /* ══════════════════════════════════════════════════════
+         FIXED STIMULUS PARAMETERS — identical to the two source
+         animations (size / speed / color unchanged)
+      ══════════════════════════════════════════════════════ */
+      const FPS = 60;
+      const MM_TO_PX = 2;
+      const BALL_DIAMETER_MM = 26;
+      const BALL_RADIUS_MM = BALL_DIAMETER_MM / 2;
+      const BALL_SPEED_MM_PER_S = 180;
+
+      const BALL_RADIUS_PX = BALL_RADIUS_MM * MM_TO_PX; // 26 px
+      const BALL_SPEED_PX_PER_FRAME = (BALL_SPEED_MM_PER_S * MM_TO_PX) / FPS; // 6 px/frame
+
+      const AGENT_COLOR = "#7a9ec9"; // blue — causal agent
+      const PATIENT_BEFORE_COLOR = "#e8b860"; // yellow
+      const PATIENT_AFTER_COLOR = "#d9534f"; // red
+
+      function getAgentSize() {
+        return BALL_RADIUS_PX;
+      }
+      function getPatientSize() {
+        return BALL_RADIUS_PX;
+      }
+      function getAgentSpeed() {
+        return BALL_SPEED_PX_PER_FRAME;
+      }
+      function getAgentShape() {
+        return "circle";
+      }
+      function getPatientShape() {
+        return "circle";
+      }
+
+      /* ══════════════════════════════════════════════════════
+         DRAWING PRIMITIVES — ported verbatim from dual_delay_demo.html
+      ══════════════════════════════════════════════════════ */
+      function drawBall(ctx, x, y, r, col, shape = "circle") {
+        ctx.fillStyle = col;
+        ctx.strokeStyle = col;
+        ctx.lineWidth = 1.5;
+        if (shape === "square") {
+          ctx.beginPath();
+          ctx.rect(x - r, y - r, r * 2, r * 2);
+          ctx.fill();
+          ctx.stroke();
+        } else {
+          ctx.beginPath();
+          ctx.arc(x, y, r, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.stroke();
+        }
+      }
+
+      /* ── Intact-face primitives ── */
+      function drawOpenEyeGaze(ctx, cx, cy, scR, gazeDir) {
+        ctx.beginPath();
+        ctx.arc(cx, cy, scR, 0, Math.PI * 2);
+        ctx.fillStyle = "#fff";
+        ctx.fill();
+        ctx.strokeStyle = "#444";
+        ctx.lineWidth = 1.0;
+        ctx.stroke();
+        const pR = scR * 0.46,
+          pOff = scR * 0.34 * gazeDir;
+        ctx.beginPath();
+        ctx.arc(cx + pOff - 0.8, cy, pR, 0, Math.PI * 2);
+        ctx.fillStyle = "#1a0e00";
+        ctx.fill();
+        ctx.beginPath();
+        ctx.arc(
+          cx + pOff - pR * 0.28,
+          cy - pR * 0.28,
+          pR * 0.22,
+          0,
+          Math.PI * 2,
+        );
+        ctx.fillStyle = "rgba(255,255,255,0.85)";
+        ctx.fill();
+      }
+
+      function drawNeutralMouth(ctx, cx, cy, halfW) {
+        ctx.save();
+        ctx.strokeStyle = "#444";
+        ctx.lineWidth = 1.6;
+        ctx.lineCap = "round";
+        ctx.beginPath();
+        ctx.moveTo(cx - halfW, cy);
+        ctx.lineTo(cx + halfW, cy);
+        ctx.stroke();
+        ctx.restore();
+      }
+
+      function drawFaceNeutralGaze(ctx, bx, by, r, gazeDir) {
+        const scR = r * 0.22,
+          ey = by - r * 0.22,
+          eo = r * 0.34;
+        ctx.save();
+        ctx.beginPath();
+        ctx.arc(bx, by, r - 0.5, 0, Math.PI * 2);
+        ctx.clip();
+
+        const browY = ey - scR * 1.55;
+        const browHalf = scR * 1.0;
+        ctx.strokeStyle = "#2a1e0a";
+        ctx.lineWidth = r * 0.085;
+        ctx.lineCap = "round";
+        ctx.beginPath();
+        ctx.moveTo(bx - eo - browHalf, browY);
+        ctx.lineTo(bx - eo + browHalf, browY);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(bx + eo - browHalf, browY);
+        ctx.lineTo(bx + eo + browHalf, browY);
+        ctx.stroke();
+
+        drawOpenEyeGaze(ctx, bx - eo, ey, scR, gazeDir);
+        drawOpenEyeGaze(ctx, bx + eo, ey, scR, gazeDir);
+
+        ctx.save();
+        ctx.translate(bx, ey + r * 0.3);
+        ctx.strokeStyle = "#2a1e0a";
+        ctx.lineWidth = 1.4;
+        ctx.lineCap = "round";
+        ctx.beginPath();
+        ctx.moveTo(-r * 0.08, 0);
+        ctx.lineTo(0, r * 0.14);
+        ctx.lineTo(r * 0.08, 0);
+        ctx.stroke();
+        ctx.restore();
+
+        drawNeutralMouth(ctx, bx, by + r * 0.5, r * 0.28);
+        ctx.restore();
+      }
+
+      /* ── Scrambled-face primitives ── */
+      function drawScrambledFace(ctx, bx, by, r, baseCol) {
+        const scR = r * 0.22;
+        const pR = scR * 0.48;
+
+        const eyeGap = scR * 1.65;
+        const eyeY1 = by - eyeGap + 3;
+        const eyeY2 = by + eyeGap * 0.8;
+
+        const mouthR = r * 0.28;
+        const mouthArcCY = eyeY1 - scR * 2.2 - mouthR * 0.87;
+
+        const noseHeight = r * 0.14;
+        const noseY = by + r - noseHeight - 0.2;
+        const noseTip = noseY - noseHeight;
+
+        ctx.save();
+        ctx.beginPath();
+        ctx.arc(bx, by, r - 0.5, 0, Math.PI * 2);
+        ctx.clip();
+
+        const sclOffsetX = r * 0.55;
+        const pupOffsetX = r * 0.48;
+
+        ctx.save();
+        ctx.beginPath();
+        ctx.arc(bx + pupOffsetX, by, scR, 0, Math.PI * 2);
+        ctx.fillStyle = "#fff";
+        ctx.fill();
+        ctx.beginPath();
+        ctx.arc(bx + pupOffsetX + (scR - pR), by, pR, 0, Math.PI * 2);
+        ctx.fillStyle = baseCol;
+        ctx.fill();
+        ctx.beginPath();
+        ctx.arc(bx + pupOffsetX, by, scR, 0, Math.PI * 2);
+        ctx.strokeStyle = "#444";
+        ctx.lineWidth = 1.0;
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.arc(bx + pupOffsetX + (scR - pR), by, pR, 0, Math.PI * 2);
+        ctx.strokeStyle = "#444";
+        ctx.lineWidth = 1.0;
+        ctx.stroke();
+        ctx.restore();
+
+        ctx.beginPath();
+        ctx.arc(bx + sclOffsetX + 3, by, pR, 0, Math.PI * 2);
+        ctx.fillStyle = baseCol;
+        ctx.fill();
+        ctx.beginPath();
+        ctx.arc(
+          bx + sclOffsetX - pR * 0.28,
+          by - pR * 0.28,
+          pR * 0.22,
+          0,
+          Math.PI * 2,
+        );
+        ctx.fillStyle = baseCol;
+        ctx.fill();
+
+        ctx.save();
+        ctx.beginPath();
+        ctx.arc(bx - pupOffsetX, by, scR, 0, Math.PI * 2);
+        ctx.fillStyle = "#fff";
+        ctx.fill();
+        ctx.beginPath();
+        ctx.arc(bx - pupOffsetX - (scR - pR), by, pR, 0, Math.PI * 2);
+        ctx.fillStyle = baseCol;
+        ctx.fill();
+        ctx.beginPath();
+        ctx.arc(bx - pupOffsetX, by, scR, 0, Math.PI * 2);
+        ctx.strokeStyle = "#444";
+        ctx.lineWidth = 1.0;
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.arc(bx - pupOffsetX - (scR - pR), by, pR, 0, Math.PI * 2);
+        ctx.strokeStyle = "#444";
+        ctx.lineWidth = 1.0;
+        ctx.stroke();
+        ctx.restore();
+
+        ctx.beginPath();
+        ctx.arc(bx - sclOffsetX - 3, by, pR, 0, Math.PI * 2);
+        ctx.fillStyle = baseCol;
+        ctx.fill();
+        ctx.beginPath();
+        ctx.arc(
+          bx - sclOffsetX - pR * 0.28,
+          by - pR * 0.28,
+          pR * 0.22,
+          0,
+          Math.PI * 2,
+        );
+        ctx.fillStyle = baseCol;
+        ctx.fill();
+
+        ctx.beginPath();
+        ctx.arc(bx + r * 0.15, by, pR, 0, Math.PI * 2);
+        ctx.fillStyle = "#222";
+        ctx.fill();
+        ctx.beginPath();
+        ctx.arc(
+          bx + r * 0.15 - pR * 0.28,
+          by - pR * 0.28,
+          pR * 0.22,
+          0,
+          Math.PI * 2,
+        );
+        ctx.fillStyle = "rgba(255,255,255,0.85)";
+        ctx.fill();
+
+        ctx.beginPath();
+        ctx.arc(bx - r * 0.15, by, pR, 0, Math.PI * 2);
+        ctx.fillStyle = "#222";
+        ctx.fill();
+        ctx.beginPath();
+        ctx.arc(
+          bx - r * 0.15 - pR * 0.28,
+          by - pR * 0.28,
+          pR * 0.22,
+          0,
+          Math.PI * 2,
+        );
+        ctx.fillStyle = "rgba(255,255,255,0.85)";
+        ctx.fill();
+
+        const legDX = r * 0.08,
+          legDY = r * 0.14;
+        const legLen0 = Math.sqrt(legDX * legDX + legDY * legDY);
+        const legL = legLen0;
+        const ux = legDX / legLen0,
+          uy = legDY / legLen0;
+        const spread = r * 0.87;
+        const noseBottomY = by + r - 22.7;
+
+        ctx.save();
+        ctx.strokeStyle = "#444";
+        ctx.lineWidth = 1.4;
+        ctx.lineCap = "round";
+        ctx.beginPath();
+        ctx.moveTo(bx - spread - ux * legL, noseBottomY - uy * legL);
+        ctx.lineTo(bx - spread, noseBottomY);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(bx + spread + ux * legL, noseBottomY - uy * legL);
+        ctx.lineTo(bx + spread, noseBottomY);
+        ctx.stroke();
+        ctx.restore();
+
+        ctx.restore();
+      }
+
+      function drawCond7EyebrowsAndMouth(ctx, bx, by, r) {
+        const eyM = by + r * 0.15,
+          eo = r * 0.28,
+          scR = r * 0.22;
+
+        ctx.save();
+        ctx.beginPath();
+        ctx.arc(bx, by, r - 0.5, 0, Math.PI * 2);
+        ctx.clip();
+
+        const browY = eyM + scR * 2.6;
+        const browHalf = scR * 1.0;
+        ctx.strokeStyle = "#2a1e0a";
+        ctx.lineWidth = r * 0.085;
+        ctx.lineCap = "round";
+        ctx.beginPath();
+        ctx.moveTo(bx - eo - browHalf, browY);
+        ctx.lineTo(bx - eo + browHalf, browY);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(bx + eo - browHalf, browY);
+        ctx.lineTo(bx + eo + browHalf, browY);
+        ctx.stroke();
+
+        ctx.save();
+        ctx.strokeStyle = "#444";
+        ctx.lineWidth = 1.6;
+        ctx.lineCap = "round";
+        ctx.beginPath();
+        ctx.moveTo(bx - r * 0.28, by - r * 0.7);
+        ctx.lineTo(bx + r * 0.28, by - r * 0.7);
+        ctx.stroke();
+        ctx.restore();
+
+        ctx.restore();
+      }
+
+      /* ══════════════════════════════════════════════════════
+         GEOMETRY
+      ══════════════════════════════════════════════════════ */
+      function makeLayout(canvasEl, direction) {
+        const dir = direction === "RL" ? -1 : 1; // -1: blue starts right, moves left
+        function W() {
+          return canvasEl.width;
+        }
+        /* Patient (yellow, stationary) position */
+        function agentX0() {
+          return dir === 1 ? W() * 0.68 : W() * 0.32;
+        }
+        /* Mover (blue) starting position */
+        function causeX0() {
+          return dir === 1 ? W() * 0.12 : W() * 0.88;
+        }
+        /* Mover's stopping position, tangent to the patient */
+        function causeStopX() {
+          return dir === 1
+            ? agentX0() - getAgentSize() - getPatientSize() - 2
+            : agentX0() + getAgentSize() + getPatientSize() + 2;
+        }
+        const Y = canvasEl.height * 0.5;
+        function framesUntilHit() {
+          return Math.ceil(
+            Math.abs(causeStopX() - causeX0()) / getAgentSpeed(),
+          );
+        }
+        return { W, agentX0, causeX0, causeStopX, Y, framesUntilHit, dir };
+      }
+
+      /* ══════════════════════════════════════════════════════
+         TRIAL RUNNERS
+         Each runner exposes:
+           init(canvasEl, delayMs) → sizes the canvas, computes the
+             trial's timing, resets state, and draws the FIRST FRAME
+             only (no animation yet).
+           play(onComplete) → starts the animation from that first
+             frame and calls onComplete() when it finishes, leaving
+             the LAST FRAME drawn on the canvas.
+      ══════════════════════════════════════════════════════ */
+      function makeIntactTrialRunner() {
+        let canvasEl, ctx, L, isMirrored;
+        const BG = "#fafafa";
+        let causeX = 0,
+          changed = false,
+          state = "idle",
+          frame = 0,
+          effectFrame = 0,
+          animId = null;
+
+        function drawScene() {
+          ctx.clearRect(0, 0, L.W(), canvasEl.height);
+          ctx.fillStyle = BG;
+          ctx.fillRect(0, 0, L.W(), canvasEl.height);
+          const ax = L.agentX0();
+          const patientColor = changed
+            ? PATIENT_AFTER_COLOR
+            : PATIENT_BEFORE_COLOR;
+          drawBall(
+            ctx,
+            ax,
+            L.Y,
+            getPatientSize(),
+            patientColor,
+            getPatientShape(),
+          );
+          /* Always draw the face using the LR-style code path (gazeDir
+             = -1, "looking left"); for RL, mirror the whole face
+             horizontally around the patient's center via a canvas
+             transform. This guarantees the RL face is a pixel-perfect
+             mirror image of the LR face — same code, same geometry,
+             just flipped — rather than two independently-tweaked
+             drawings that can drift apart. */
+          if (isMirrored) {
+            ctx.save();
+            ctx.translate(ax, 0);
+            ctx.scale(-1, 1);
+            ctx.translate(-ax, 0);
+            drawFaceNeutralGaze(ctx, ax, L.Y, getPatientSize(), -1);
+            ctx.restore();
+          } else {
+            drawFaceNeutralGaze(ctx, ax, L.Y, getPatientSize(), -1);
+          }
+          drawBall(
+            ctx,
+            causeX,
+            L.Y,
+            getAgentSize(),
+            AGENT_COLOR,
+            getAgentShape(),
+          );
+        }
+
+        function tick() {
+          frame++;
+          if (L.dir === 1 ? causeX < L.causeStopX() : causeX > L.causeStopX()) {
+            causeX += L.dir * getAgentSpeed();
+            if (
+              L.dir === 1 ? causeX >= L.causeStopX() : causeX <= L.causeStopX()
+            ) {
+              causeX = L.causeStopX();
+              if (state === "approaching") state = "hit";
+            }
+          }
+          if (
+            (state === "approaching" || state === "hit") &&
+            frame >= effectFrame
+          ) {
+            changed = true;
+            state = "expressed";
+          }
+          if (state === "expressed" && frame > effectFrame + 60 * 1.4) {
+            state = "done";
+            cancelAnimationFrame(animId);
+            drawScene();
+            const cb = onCompleteCb;
+            onCompleteCb = null;
+            if (cb) cb();
+            return;
+          }
+          drawScene();
+          animId = requestAnimationFrame(tick);
+        }
+
+        let onCompleteCb = null;
+
+        function init(newCanvas, delayMs, direction) {
+          if (animId) cancelAnimationFrame(animId);
+          canvasEl = newCanvas;
+          canvasEl.width = canvasEl.offsetWidth || 640;
+          canvasEl.height = canvasEl.clientHeight || 320;
+          ctx = canvasEl.getContext("2d");
+          L = makeLayout(canvasEl, direction);
+          /* RL: blue approaches from the right, so the whole face is
+             mirrored (see drawScene) — this automatically makes the
+             gaze point right and keeps every element (brows, eyes,
+             pupils, nose, mouth) a perfect mirror image of the LR
+             face, with no separate offsets to keep in sync. */
+          isMirrored = direction === "RL";
+          const hitAt = L.framesUntilHit();
+          effectFrame = Math.max(1, hitAt + Math.round(delayMs / (1000 / FPS)));
+          state = "approaching";
+          causeX = L.causeX0();
+          changed = false;
+          frame = 0;
+          drawScene();
+        }
+
+        function play(onComplete) {
+          onCompleteCb = onComplete;
+          state = "approaching";
+          animId = requestAnimationFrame(tick);
+        }
+
+        return { init, play };
+      }
+
+      function makeScrambledTrialRunner() {
+        let canvasEl, ctx, L;
+        const BG = "#fafafa";
+        let causeX = 0,
+          currentCol = PATIENT_BEFORE_COLOR,
+          state = "idle",
+          frame = 0,
+          effectFrame = 0,
+          animId = null;
+
+        function drawScene() {
+          ctx.clearRect(0, 0, L.W(), canvasEl.height);
+          ctx.fillStyle = BG;
+          ctx.fillRect(0, 0, L.W(), canvasEl.height);
+          const px = L.agentX0();
+          ctx.save();
+          ctx.translate(px, L.Y);
+          ctx.rotate(Math.PI / 2);
+          ctx.translate(-px, -L.Y);
+          drawBall(
+            ctx,
+            px,
+            L.Y,
+            getPatientSize(),
+            currentCol,
+            getPatientShape(),
+          );
+          drawScrambledFace(ctx, px, L.Y, getPatientSize(), currentCol);
+          drawCond7EyebrowsAndMouth(ctx, px, L.Y, getPatientSize());
+          ctx.restore();
+          drawBall(
+            ctx,
+            causeX,
+            L.Y,
+            getAgentSize(),
+            AGENT_COLOR,
+            getAgentShape(),
+          );
+        }
+
+        function tick() {
+          frame++;
+          if (L.dir === 1 ? causeX < L.causeStopX() : causeX > L.causeStopX()) {
+            causeX += L.dir * getAgentSpeed();
+            if (
+              L.dir === 1 ? causeX >= L.causeStopX() : causeX <= L.causeStopX()
+            ) {
+              causeX = L.causeStopX();
+              if (state === "approaching") state = "hit";
+            }
+          }
+          if (
+            (state === "approaching" || state === "hit") &&
+            frame >= effectFrame
+          ) {
+            currentCol = PATIENT_AFTER_COLOR;
+            state = "changed";
+          }
+          if (state === "changed" && frame > effectFrame + 60 * 1.4) {
+            state = "done";
+            cancelAnimationFrame(animId);
+            drawScene();
+            const cb = onCompleteCb;
+            onCompleteCb = null;
+            if (cb) cb();
+            return;
+          }
+          drawScene();
+          animId = requestAnimationFrame(tick);
+        }
+
+        let onCompleteCb = null;
+
+        function init(newCanvas, delayMs, direction) {
+          if (animId) cancelAnimationFrame(animId);
+          canvasEl = newCanvas;
+          canvasEl.width = canvasEl.offsetWidth || 640;
+          canvasEl.height = canvasEl.clientHeight || 320;
+          ctx = canvasEl.getContext("2d");
+          L = makeLayout(canvasEl, direction);
+          const hitAt = L.framesUntilHit();
+          effectFrame = Math.max(1, hitAt + Math.round(delayMs / (1000 / FPS)));
+          state = "approaching";
+          causeX = L.causeX0();
+          currentCol = PATIENT_BEFORE_COLOR;
+          frame = 0;
+          drawScene();
+        }
+
+        function play(onComplete) {
+          onCompleteCb = onComplete;
+          state = "approaching";
+          animId = requestAnimationFrame(tick);
+        }
+
+        return { init, play };
+      }
+
+      const intactRunner = makeIntactTrialRunner();
+      const scrambledRunner = makeScrambledTrialRunner();
+
+      /* ══════════════════════════════════════════════════════
+         TRIAL / RESPONSE STATE MACHINE
+         phase: "idle" | "waitingKeypress" | "playing" |
+                "awaitingResponse" | "attentionCheck"
+      ══════════════════════════════════════════════════════ */
+      let phase = "idle";
+      let trialLog = [];
+      let attnCheckLog = [];
+      let activeTrial = null;
+
+      const keypressInstruction = document.getElementById(
+        "keypressInstruction",
+      );
+      const expCanvas = document.getElementById("expCanvas");
+      const sliderArea = document.getElementById("sliderArea");
+      const probSlider = document.getElementById("probSlider");
+      const submitSliderBtn = document.getElementById("submitSliderBtn");
+      const feedbackArea = document.getElementById("feedbackArea");
+
+      const mainTrialPanel = document.getElementById("mainTrialPanel");
+      const attentionCheckPanel = document.getElementById(
+        "attentionCheckPanel",
+      );
+      const acQuestionText = document.getElementById("acQuestionText");
+      const acLeftBtn = document.getElementById("acLeftBtn");
+      const acRightBtn = document.getElementById("acRightBtn");
+      const acSubmitBtn = document.getElementById("acSubmitBtn");
+
+      function currentRunner() {
+        return activeTrial.condition === "intact"
+          ? intactRunner
+          : scrambledRunner;
+      }
+
+      function paintSliderFlat() {
+        probSlider.style.background = "#ddd6c8";
+      }
+
+      function paintSliderFill() {
+        const v = probSlider.value;
+        probSlider.style.background = `linear-gradient(to right, #b8935a 0%, #b8935a ${v}%, #ddd6c8 ${v}%, #ddd6c8 100%)`;
+      }
+
+      function resetSliderUI() {
+        probSlider.value = 50;
+        probSlider.disabled = true;
+        probSlider.classList.add("slider-hidden-thumb");
+        submitSliderBtn.disabled = true;
+        paintSliderFlat();
+      }
+
+      /* ── Attention checks ── */
+      let acSelectedSide = null;
+      let acContext = null; // { question, correctSide, block, afterTrial, onDone }
+
+      function resetACButtons() {
+        acSelectedSide = null;
+        acLeftBtn.classList.remove("selected");
+        acRightBtn.classList.remove("selected");
+        acSubmitBtn.disabled = true;
+      }
+
+      acLeftBtn.addEventListener("click", () => {
+        if (phase !== "attentionCheck") return;
+        acSelectedSide = "left";
+        acLeftBtn.classList.add("selected");
+        acRightBtn.classList.remove("selected");
+        acSubmitBtn.disabled = false;
+      });
+
+      acRightBtn.addEventListener("click", () => {
+        if (phase !== "attentionCheck") return;
+        acSelectedSide = "right";
+        acRightBtn.classList.add("selected");
+        acLeftBtn.classList.remove("selected");
+        acSubmitBtn.disabled = false;
+      });
+
+      acSubmitBtn.addEventListener("click", () => {
+        if (phase !== "attentionCheck" || acSubmitBtn.disabled || !acSelectedSide)
+          return;
+        const ctx = acContext;
+        attnCheckLog.push({
+          check_number: attnCheckLog.length + 1,
+          block: ctx.block,
+          after_trial: ctx.afterTrial,
+          question: ctx.question,
+          participant_response: acSelectedSide,
+          correct_response: ctx.correctSide,
+          correct: acSelectedSide === ctx.correctSide ? 1 : 0,
+        });
+        const onDone = ctx.onDone;
+        acContext = null;
+        resetACButtons();
+        onDone();
+      });
+
+      function askAttentionCheck(
+        question,
+        questionText,
+        correctSide,
+        block,
+        afterTrial,
+        onDone,
+      ) {
+        phase = "attentionCheck";
+        acQuestionText.textContent = questionText;
+        resetACButtons();
+        acContext = { question, correctSide, block, afterTrial, onDone };
+      }
+
+      /* Runs ONE comprehension check about the trial that was just
+         completed, then calls `then()` to resume the main trial
+         loop. Which question (yellow vs. blue) to ask is decided by
+         the caller from the checkpoint→question map built in
+         computeAttentionCheckpoints() — trials are already in a
+         randomized order within each block, so no further
+         randomization of the question itself is needed. */
+      function runAttentionChecksThen(
+        trialJustCompleted,
+        afterTrial,
+        questionType,
+        then,
+      ) {
+        mainTrialPanel.style.display = "none";
+        attentionCheckPanel.style.display = "flex";
+
+        const yellowSide =
+          trialJustCompleted.direction === "LR" ? "right" : "left";
+        /* Blue's *starting* side — the salient, unambiguous position,
+           since by the end of the trial it sits next to (and hence on
+           the same side as) the stationary yellow ball. */
+        const blueSide =
+          trialJustCompleted.direction === "LR" ? "left" : "right";
+
+        const finish = () => {
+          attentionCheckPanel.style.display = "none";
+          mainTrialPanel.style.display = "flex";
+          then();
+        };
+
+        if (questionType === "yellow_position") {
+          askAttentionCheck(
+            "yellow_position",
+            "On the last trial, was the yellow thing on the left or on the right?",
+            yellowSide,
+            trialJustCompleted.block,
+            afterTrial,
+            finish,
+          );
+        } else {
+          askAttentionCheck(
+            "blue_position",
+            "On the last trial, was the blue thing on the left or on the right?",
+            blueSide,
+            trialJustCompleted.block,
+            afterTrial,
+            finish,
+          );
+        }
+      }
+
+      function nextTrial() {
+        if (trialIndex >= trialList.length) {
+          finishExperiment();
+          return;
+        }
+
+        activeTrial = trialList[trialIndex];
+        trialIndex++;
+
+        feedbackArea.textContent = "";
+        document.getElementById("debugCondition").textContent =
+          activeTrial.condition;
+        document.getElementById("debugDirection").textContent =
+          activeTrial.direction;
+        document.getElementById("debugDelay").textContent = activeTrial.delay;
+        document.getElementById("debugTrialNum").textContent = trialIndex;
+        document.getElementById("debugTotal").textContent = TOTAL_TRIALS;
+
+        sliderArea.style.display = "block";
+        resetSliderUI();
+        keypressInstruction.style.visibility = "visible";
+
+        currentRunner().init(
+          expCanvas,
+          activeTrial.delay,
+          activeTrial.direction,
+        );
+        phase = "waitingKeypress";
+      }
+
+      document.addEventListener("keydown", (e) => {
+        if (phase !== "waitingKeypress") return;
+        if (e.key === "1" || e.code === "Digit1" || e.code === "Numpad1") {
+          e.preventDefault();
+          keypressInstruction.style.visibility = "hidden";
+          phase = "playing";
+          currentRunner().play(() => {
+            phase = "awaitingResponse";
+            probSlider.disabled = false;
+          });
+        }
+      });
+
+      probSlider.addEventListener("input", () => {
+        if (phase !== "awaitingResponse") return;
+        probSlider.classList.remove("slider-hidden-thumb");
+        submitSliderBtn.disabled = false;
+        paintSliderFill();
+      });
+
+      submitSliderBtn.addEventListener("click", () => {
+        if (phase !== "awaitingResponse" || submitSliderBtn.disabled) return;
+        handleResponse(Number(probSlider.value));
+      });
+
+      function handleResponse(rating) {
+        phase = "idle";
+        sliderArea.style.display = "none";
+
+        const justCompleted = activeTrial;
+
+        trialLog.push({
+          trial: trialLog.length + 1,
+          block: justCompleted.block,
+          condition: justCompleted.condition,
+          direction: justCompleted.direction,
+          delay_ms: justCompleted.delay,
+          probability_rating: rating,
+        });
+        const completedCount = trialLog.length;
+
+        feedbackArea.textContent = "Recorded.";
+
+        if (attentionCheckpoints.has(completedCount)) {
+          const questionType = attentionCheckpoints.get(completedCount);
+          setTimeout(() => {
+            runAttentionChecksThen(
+              justCompleted,
+              completedCount,
+              questionType,
+              nextTrial,
+            );
+          }, 600);
+        } else {
+          setTimeout(nextTrial, 600); // brief ITI
+        }
+      }
+
+      function finishExperiment() {
+        feedbackArea.textContent = "";
+        keypressInstruction.style.visibility = "hidden";
+        sliderArea.style.display = "none";
+        document.getElementById("finalQuestionsPanel").style.display = "block";
+
+        autoSubmitTimer = setTimeout(submitFinalQuestions, 180000); // 3 min
+      }
+
+      let q1Answer = "";
+      let q2Answer = "";
+      let autoSubmitTimer = null;
+
+      function submitFinalQuestions() {
+        clearTimeout(autoSubmitTimer);
+        q1Answer = document.getElementById("q1Response").value;
+        q2Answer = document.getElementById("q2Response").value;
+        document.getElementById("finalQuestionsPanel").style.display = "none";
+        document.getElementById("thankYouPanel").style.display = "block";
+      }
+
+      document
+        .getElementById("finalSubmitBtn")
+        .addEventListener("click", submitFinalQuestions);
+
+      document.getElementById("downloadBtn").onclick = () => {
+        const header =
+          "trial,block,condition,direction,delay_ms,probability_rating\n";
+        const rows = trialLog
+          .map(
+            (t) =>
+              `${t.trial},${t.block},${t.condition},${t.direction},${t.delay_ms},${t.probability_rating}`,
+          )
+          .join("\n");
+
+        const acHeader =
+          "check_number,block,after_trial,question,participant_response,correct_response,correct\n";
+        const acRows = attnCheckLog
+          .map(
+            (c) =>
+              `${c.check_number},${c.block},${c.after_trial},${c.question},${c.participant_response},${c.correct_response},${c.correct}`,
+          )
+          .join("\n");
+        const acCorrect = attnCheckLog.reduce((s, c) => s + c.correct, 0);
+        const acTotal = attnCheckLog.length;
+        const acPct = acTotal ? ((acCorrect / acTotal) * 100).toFixed(1) : "0";
+
+        const openEnded =
+          `\n\nBlock order: ${blockOrder.join(" then ")}\n\n` +
+          `Attention checks\n${acHeader}${acRows}\n\n` +
+          `Attention check accuracy: ${acCorrect}/${acTotal} (${acPct}%)\n\n` +
+          `What do you think the experiment was about?\n${q1Answer}\n\n` +
+          `What strategies did you use?\n${q2Answer}\n`;
+        const blob = new Blob([header + rows + openEnded], {
+          type: "text/csv",
+        });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = "causal_judgment_intact_scrambled_single_rep_data.csv";
+        a.click();
+        URL.revokeObjectURL(url);
+      };
+
+      document.getElementById("debugToggle").onchange = (e) => {
+        document.getElementById("debugLine").style.display = e.target.checked
+          ? "inline"
+          : "none";
+      };
+
+      document
+        .getElementById("startExperimentBtn")
+        .addEventListener("click", () => {
+          document.getElementById("instructions").style.display = "none";
+          document.getElementById("startExperimentButtonWrap").style.display =
+            "none";
+          nextTrial();
+        });
+    </script>
+  </body>
+</html>
