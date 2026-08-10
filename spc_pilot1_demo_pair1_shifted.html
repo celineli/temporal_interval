@@ -1,0 +1,1107 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Causal Delay — Dual Condition Demo (Vertical)</title>
+    <style>
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+      body {
+        font-family: "Georgia", serif;
+        background: #f4f1ec;
+        color: #333;
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        padding: 28px 16px 70px;
+      }
+
+      /* ── Layout: single column, one row per condition, stacked
+             vertically ── */
+      .top-wrap {
+        width: 100%;
+        max-width: 680px;
+        display: flex;
+        flex-direction: column;
+        gap: 32px;
+        align-items: stretch;
+      }
+      .row {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+      }
+
+      /* ── Delay control bar ── */
+      .delayBar {
+        position: sticky;
+        top: 0;
+        z-index: 50;
+        width: 100%;
+        background: #f4f1ec;
+        padding: 14px 18px;
+        border: 1px solid #ddd6c8;
+        border-radius: 8px;
+        margin-bottom: 18px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.04);
+      }
+      .controls {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        justify-content: center;
+        flex-wrap: wrap;
+      }
+      .ctrl-label {
+        font-size: 12px;
+        color: #777;
+        letter-spacing: 0.03em;
+        text-align: center;
+      }
+      input[type="range"] {
+        -webkit-appearance: none;
+        width: 220px;
+        height: 4px;
+        background: #ddd6c8;
+        border-radius: 2px;
+        outline: none;
+        cursor: pointer;
+      }
+      input[type="range"]::-webkit-slider-thumb {
+        -webkit-appearance: none;
+        width: 18px;
+        height: 18px;
+        border-radius: 50%;
+        background: #b8935a;
+        cursor: pointer;
+      }
+      input[type="range"]::-moz-range-thumb {
+        width: 18px;
+        height: 18px;
+        border-radius: 50%;
+        background: #b8935a;
+        border: none;
+        cursor: pointer;
+      }
+      .delay-readout {
+        font-size: 16px;
+        font-weight: bold;
+        color: #b8935a;
+        min-width: 68px;
+        text-align: center;
+      }
+      .delay-note {
+        font-size: 10.5px;
+        color: #aaa;
+        text-align: center;
+        margin-top: 8px;
+        line-height: 1.5;
+      }
+      .delay-note em {
+        color: #b8935a;
+        font-style: normal;
+      }
+
+      /* ── Panel — sized to match each trial's canvas in the pilot
+             experiment (max-width 640px, fixed 320px height) ── */
+      .panel {
+        width: 100%;
+        max-width: 640px;
+        position: relative;
+        display: flex;
+        flex-direction: column;
+        background: #fff;
+        border: 1px solid #e8e1d4;
+        border-radius: 10px;
+        padding: 18px;
+      }
+      .panel-label {
+        font-size: 12px;
+        color: #888;
+        text-align: center;
+        margin-bottom: 10px;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        line-height: 1.6;
+      }
+      .cond-num {
+        display: inline-block;
+        font-size: 11px;
+        color: #b8935a;
+        margin-bottom: 2px;
+        font-weight: bold;
+      }
+      .sub {
+        color: #bbb;
+        font-size: 10px;
+        text-transform: none;
+        display: block;
+        margin-top: 2px;
+      }
+      canvas {
+        display: block;
+        width: 100%;
+        height: 320px;
+        border: 2px solid #000;
+        border-radius: 6px;
+        background: #fafafa;
+      }
+
+      /* ── Fullscreen expand button ── */
+      .expand-btn {
+        position: absolute;
+        bottom: 14px;
+        right: 14px;
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        background: #fff;
+        border: 1px solid #ddd6c8;
+        color: #b8935a;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 16px;
+        cursor: pointer;
+        z-index: 5;
+        transition:
+          background 0.15s,
+          border-color 0.15s,
+          transform 0.1s;
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);
+      }
+      .expand-btn:hover {
+        background: #fbf6ec;
+        border-color: #b8935a;
+        transform: scale(1.06);
+      }
+
+      /* ── Fullscreen overlay ── */
+      #fullscreenOverlay {
+        display: none;
+        position: fixed;
+        inset: 0;
+        z-index: 1000;
+        background: #fafafa;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 40px;
+      }
+      #fullscreenOverlay.active {
+        display: flex;
+      }
+      #fsCanvas {
+        width: min(90vw, 1100px);
+        height: min(70vh, 620px);
+        border: 2px solid #000;
+        border-radius: 8px;
+        background: #fafafa;
+      }
+      #fsClose {
+        position: absolute;
+        top: 24px;
+        right: 28px;
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        background: #fff;
+        border: 1px solid #ddd6c8;
+        color: #b8935a;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 18px;
+        cursor: pointer;
+        transition:
+          background 0.15s,
+          border-color 0.15s;
+      }
+      #fsClose:hover {
+        background: #fbf6ec;
+        border-color: #b8935a;
+      }
+      #fsStatus {
+        display: none;
+      }
+
+      /* ── Loop controls per panel ── */
+      .panel-controls {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 14px;
+        margin-top: 12px;
+      }
+      .loop-toggle {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 12px;
+        color: #888;
+        cursor: pointer;
+        user-select: none;
+      }
+      .loop-toggle input {
+        width: 15px;
+        height: 15px;
+        accent-color: #b8935a;
+        cursor: pointer;
+      }
+      .status {
+        display: none;
+      }
+      .replay-btn {
+        background: transparent;
+        border: 1px solid #ddd6c8;
+        color: #999;
+        font-family: "Georgia", serif;
+        font-size: 11px;
+        padding: 5px 14px;
+        border-radius: 4px;
+        cursor: pointer;
+        letter-spacing: 0.03em;
+        transition:
+          border-color 0.15s,
+          color 0.15s;
+      }
+      .replay-btn:hover {
+        border-color: #b8935a;
+        color: #b8935a;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="top-wrap">
+      <!-- ══════════════ ROW 1 — Social Condition ══════════════ -->
+      <div class="row">
+        <div class="delayBar">
+          <div class="controls">
+            <span class="ctrl-label"
+              >Delay between contact<br />and color change:</span
+            >
+            <input
+              type="range"
+              id="delaySlider1"
+              min="0"
+              max="16"
+              step="1"
+              value="8"
+            />
+            <span class="delay-readout" id="delayVal1">0 ms</span>
+          </div>
+          <div class="delay-note">
+            <em></em> <em></em> -1000, -750, -500, -250, -100, -50, -33, -17, 0,
+            17, 33, 50, 100, 250, 500, 750, 1000
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-label">
+            <span class="cond-num">Social Condition</span><br />
+            Neutral face — color change<br />
+            <span class="sub"
+              >Blue ball approaches; yellow ball turns red after the delay</span
+            >
+          </div>
+          <canvas id="c1" width="640" height="320"></canvas>
+          <div class="expand-btn" id="expand1" title="Fullscreen">→</div>
+          <div class="panel-controls">
+            <label class="loop-toggle"
+              ><input type="checkbox" id="loop1" checked /> Loop</label
+            >
+            <button class="replay-btn" id="replay1">Replay</button>
+          </div>
+          <div class="status" id="st1"></div>
+        </div>
+      </div>
+
+      <!-- ══════════════ ROW 2 — Physical Condition (scrambled face, same shape) ══════════════ -->
+      <div class="row">
+        <div class="delayBar">
+          <div class="controls">
+            <span class="ctrl-label"
+              >Delay between contact<br />and color change:</span
+            >
+            <input
+              type="range"
+              id="delaySlider2"
+              min="0"
+              max="16"
+              step="1"
+              value="8"
+            />
+            <span class="delay-readout" id="delayVal2">0 ms</span>
+          </div>
+          <div class="delay-note">
+            <em></em>
+            <em></em>-1000, -750, -500, -250, -100, -50, -33, -17, 0, 17, 33,
+            50, 100, 250, 500, 750, 1000
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-label">
+            <span class="cond-num">Physical Condition</span><br />
+            Scrambled face — color change<br />
+            <span class="sub"
+              >Blue ball approaches; yellow ball turns red after the delay</span
+            >
+          </div>
+          <canvas id="c2" width="640" height="320"></canvas>
+          <div class="expand-btn" id="expand2" title="Fullscreen">→</div>
+          <div class="panel-controls">
+            <label class="loop-toggle"
+              ><input type="checkbox" id="loop2" checked /> Loop</label
+            >
+            <button class="replay-btn" id="replay2">Replay</button>
+          </div>
+          <div class="status" id="st2"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════════════════════
+     FULLSCREEN OVERLAY
+══════════════════════════════════════════════ -->
+    <div id="fullscreenOverlay">
+      <div id="fsClose" title="Close">✕</div>
+      <canvas id="fsCanvas"></canvas>
+      <div id="fsStatus"></div>
+    </div>
+
+    <script>
+      "use strict";
+
+      /* ══════════════════════════════════════════════════════
+   FIXED STIMULUS PARAMETERS — copied verbatim from the uploaded
+   pair1 demo, matching the pilot experiment's trial canvas
+   (640×320, 26px-radius balls, 6px/frame).
+══════════════════════════════════════════════════════ */
+      const FPS = 60;
+      const MM_TO_PX = 2;
+      const BALL_DIAMETER_MM = 26;
+      const BALL_RADIUS_MM = BALL_DIAMETER_MM / 2;
+      const BALL_SPEED_MM_PER_S = 180;
+
+      const BALL_RADIUS_PX = BALL_RADIUS_MM * MM_TO_PX; // 26 px
+      const BALL_SPEED_PX_PER_FRAME = (BALL_SPEED_MM_PER_S * MM_TO_PX) / FPS; // 6 px/frame
+
+      const AGENT_COLOR = "#7a9ec9"; // blue — causal agent
+      const PATIENT_BEFORE_COLOR = "#e8b860"; // yellow
+      const PATIENT_AFTER_COLOR = "#d9534f"; // red
+
+      function getAgentSize() {
+        return BALL_RADIUS_PX;
+      }
+      function getPatientSize() {
+        return BALL_RADIUS_PX;
+      }
+      function getAgentSpeed() {
+        return BALL_SPEED_PX_PER_FRAME;
+      }
+      function getAgentShape() {
+        return "circle";
+      }
+      function getPatientShape() {
+        return "circle";
+      }
+
+      /* ══════════════════════════════════════════════════════
+   DELAY SLIDERS — discrete set of offsets (ms), one per row
+══════════════════════════════════════════════════════ */
+      const DELAY_VALUES = [
+        -1000, -750, -500, -250, -100, -50, -33, -17, 0, 17, 33, 50, 100, 250,
+        500, 750, 1000,
+      ];
+      function fmtDelay(v) {
+        return v === 0 ? "0 ms" : (v > 0 ? "+" : "") + v + " ms";
+      }
+
+      function wireDelaySlider(sliderEl, readoutEl) {
+        readoutEl.textContent = fmtDelay(DELAY_VALUES[+sliderEl.value]);
+        sliderEl.oninput = () => {
+          readoutEl.textContent = fmtDelay(DELAY_VALUES[+sliderEl.value]);
+        };
+        return () => DELAY_VALUES[+sliderEl.value];
+      }
+
+      const delaySlider1 = document.getElementById("delaySlider1");
+      const getDelay1 = wireDelaySlider(
+        delaySlider1,
+        document.getElementById("delayVal1"),
+      );
+      const delaySlider2 = document.getElementById("delaySlider2");
+      const getDelay2 = wireDelaySlider(
+        delaySlider2,
+        document.getElementById("delayVal2"),
+      );
+
+      /* ══════════════════════════════════════════════════════
+   DRAWING PRIMITIVES — ported verbatim from the uploaded pair1 demo
+══════════════════════════════════════════════════════ */
+      function drawBall(ctx, x, y, r, col, shape = "circle") {
+        ctx.fillStyle = col;
+        ctx.strokeStyle = col;
+        ctx.lineWidth = 1.5;
+        if (shape === "square") {
+          ctx.beginPath();
+          ctx.rect(x - r, y - r, r * 2, r * 2);
+          ctx.fill();
+          ctx.stroke();
+        } else {
+          ctx.beginPath();
+          ctx.arc(x, y, r, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.stroke();
+        }
+      }
+
+      /* ── Row 1 face primitives ── */
+      function drawOpenEyeGaze(ctx, cx, cy, scR, gazeDir) {
+        ctx.beginPath();
+        ctx.arc(cx, cy, scR, 0, Math.PI * 2);
+        ctx.fillStyle = "#fff";
+        ctx.fill();
+        ctx.strokeStyle = "#444";
+        ctx.lineWidth = 1.0;
+        ctx.stroke();
+        const pR = scR * 0.46,
+          pOff = scR * 0.34 * gazeDir;
+        ctx.beginPath();
+        ctx.arc(cx + pOff - 0.8, cy, pR, 0, Math.PI * 2);
+        ctx.fillStyle = "#1a0e00";
+        ctx.fill();
+        ctx.beginPath();
+        ctx.arc(
+          cx + pOff - pR * 0.28,
+          cy - pR * 0.28,
+          pR * 0.22,
+          0,
+          Math.PI * 2,
+        );
+        ctx.fillStyle = "rgba(255,255,255,0.85)";
+        ctx.fill();
+      }
+
+      function drawNeutralMouth(ctx, cx, cy, halfW) {
+        ctx.save();
+        ctx.strokeStyle = "#444";
+        ctx.lineWidth = 1.6;
+        ctx.lineCap = "round";
+        ctx.beginPath();
+        ctx.moveTo(cx - halfW, cy);
+        ctx.lineTo(cx + halfW, cy);
+        ctx.stroke();
+        ctx.restore();
+      }
+
+      function drawFaceNeutralGaze(ctx, bx, by, r, gazeDir) {
+        const scR = r * 0.22,
+          ey = by - r * 0.22,
+          eo = r * 0.34;
+        ctx.save();
+        ctx.beginPath();
+        ctx.arc(bx, by, r - 0.5, 0, Math.PI * 2);
+        ctx.clip();
+
+        const browY = ey - scR * 1.55;
+        const browHalf = scR * 1.0;
+        ctx.strokeStyle = "#2a1e0a";
+        ctx.lineWidth = r * 0.085;
+        ctx.lineCap = "round";
+        ctx.beginPath();
+        ctx.moveTo(bx - eo - browHalf, browY);
+        ctx.lineTo(bx - eo + browHalf, browY);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(bx + eo - browHalf, browY);
+        ctx.lineTo(bx + eo + browHalf, browY);
+        ctx.stroke();
+
+        drawOpenEyeGaze(ctx, bx - eo, ey, scR, gazeDir);
+        drawOpenEyeGaze(ctx, bx + eo, ey, scR, gazeDir);
+
+        ctx.save();
+        ctx.translate(bx, ey + r * 0.3);
+        ctx.strokeStyle = "#2a1e0a";
+        ctx.lineWidth = 1.4;
+        ctx.lineCap = "round";
+        ctx.beginPath();
+        ctx.moveTo(-r * 0.08, 0);
+        ctx.lineTo(0, r * 0.14);
+        ctx.lineTo(r * 0.08, 0);
+        ctx.stroke();
+        ctx.restore();
+
+        drawNeutralMouth(ctx, bx, by + r * 0.5, r * 0.28);
+        ctx.restore();
+      }
+
+      /* ── Row 2 (scrambled face + eyebrows/mouth) primitives ── */
+      function drawScrambledFace(ctx, bx, by, r, baseCol) {
+        const scR = r * 0.22;
+        const pR = scR * 0.48;
+
+        const eyeGap = scR * 1.65;
+        const eyeY1 = by - eyeGap + 3;
+        const eyeY2 = by + eyeGap * 0.8;
+
+        const mouthR = r * 0.28;
+        const mouthArcCY = eyeY1 - scR * 2.2 - mouthR * 0.87;
+
+        const noseHeight = r * 0.14;
+        const noseY = by + r - noseHeight - 0.2;
+        const noseTip = noseY - noseHeight;
+
+        ctx.save();
+        ctx.beginPath();
+        ctx.arc(bx, by, r - 0.5, 0, Math.PI * 2);
+        ctx.clip();
+
+        const sclOffsetX = r * 0.55;
+        const pupOffsetX = r * 0.48;
+
+        /* This whole face is rotated 90° clockwise in drawScene, so a
+           LOCAL vertical (y) shift here becomes a HORIZONTAL shift in
+           the final displayed image, while each pair's local x
+           position (kept unchanged below) maps to its final vertical
+           position — so shifting only y moves a pair horizontally
+           without moving it up/down or altering its internal layout.
+
+           In the final rotated image: the local "bx - ..." group (its
+           sclera/pupil + nearby black pupil) lands at the TOP of the
+           ball — this is the "upper pair". The local "bx + ..." group
+           lands at the BOTTOM — the "lower pair".
+
+           Final-image reference points:
+             - the "before" mouth line sits at local y = by - r*0.7,
+               landing on the RIGHT side of the ball (global +0.7r)
+               after rotation.
+             - the "before" eyebrow lines sit at local y ≈ by + 0.722r,
+               landing on the LEFT side of the ball (global -0.722r)
+               after rotation.
+
+           Target: upper pair → midpoint between center and the mouth
+           line (right side); lower pair → midpoint between center and
+           the eyebrow lines (left side). Halving each reference gives
+           the local y-offsets below (sign flips because local
+           north/south maps to global east/west). */
+        const yUpper = by - r * 0.35; // → lands at the RIGHT-side midpoint (moves right)
+        const yLower = by + r * 0.361; // → lands at the LEFT-side midpoint (moves left)
+
+        ctx.save();
+        ctx.beginPath();
+        ctx.arc(bx + pupOffsetX, yLower, scR, 0, Math.PI * 2);
+        ctx.fillStyle = "#fff";
+        ctx.fill();
+        ctx.beginPath();
+        ctx.arc(bx + pupOffsetX + (scR - pR), yLower, pR, 0, Math.PI * 2);
+        ctx.fillStyle = baseCol;
+        ctx.fill();
+        ctx.beginPath();
+        ctx.arc(bx + pupOffsetX, yLower, scR, 0, Math.PI * 2);
+        ctx.strokeStyle = "#444";
+        ctx.lineWidth = 1.0;
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.arc(bx + pupOffsetX + (scR - pR), yLower, pR, 0, Math.PI * 2);
+        ctx.strokeStyle = "#444";
+        ctx.lineWidth = 1.0;
+        ctx.stroke();
+        ctx.restore();
+
+        ctx.beginPath();
+        ctx.arc(bx + sclOffsetX + 3, yLower, pR, 0, Math.PI * 2);
+        ctx.fillStyle = baseCol;
+        ctx.fill();
+        ctx.beginPath();
+        ctx.arc(
+          bx + sclOffsetX - pR * 0.28,
+          yLower - pR * 0.28,
+          pR * 0.22,
+          0,
+          Math.PI * 2,
+        );
+        ctx.fillStyle = baseCol;
+        ctx.fill();
+
+        ctx.save();
+        ctx.beginPath();
+        ctx.arc(bx - pupOffsetX, yUpper, scR, 0, Math.PI * 2);
+        ctx.fillStyle = "#fff";
+        ctx.fill();
+        ctx.beginPath();
+        ctx.arc(bx - pupOffsetX - (scR - pR), yUpper, pR, 0, Math.PI * 2);
+        ctx.fillStyle = baseCol;
+        ctx.fill();
+        ctx.beginPath();
+        ctx.arc(bx - pupOffsetX, yUpper, scR, 0, Math.PI * 2);
+        ctx.strokeStyle = "#444";
+        ctx.lineWidth = 1.0;
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.arc(bx - pupOffsetX - (scR - pR), yUpper, pR, 0, Math.PI * 2);
+        ctx.strokeStyle = "#444";
+        ctx.lineWidth = 1.0;
+        ctx.stroke();
+        ctx.restore();
+
+        ctx.beginPath();
+        ctx.arc(bx - sclOffsetX - 3, yUpper, pR, 0, Math.PI * 2);
+        ctx.fillStyle = baseCol;
+        ctx.fill();
+        ctx.beginPath();
+        ctx.arc(
+          bx - sclOffsetX - pR * 0.28,
+          yUpper - pR * 0.28,
+          pR * 0.22,
+          0,
+          Math.PI * 2,
+        );
+        ctx.fillStyle = baseCol;
+        ctx.fill();
+
+        ctx.beginPath();
+        ctx.arc(bx + r * 0.15, yLower, pR, 0, Math.PI * 2);
+        ctx.fillStyle = "#222";
+        ctx.fill();
+        ctx.beginPath();
+        ctx.arc(
+          bx + r * 0.15 - pR * 0.28,
+          yLower - pR * 0.28,
+          pR * 0.22,
+          0,
+          Math.PI * 2,
+        );
+        ctx.fillStyle = "rgba(255,255,255,0.85)";
+        ctx.fill();
+
+        ctx.beginPath();
+        ctx.arc(bx - r * 0.15, yUpper, pR, 0, Math.PI * 2);
+        ctx.fillStyle = "#222";
+        ctx.fill();
+        ctx.beginPath();
+        ctx.arc(
+          bx - r * 0.15 - pR * 0.28,
+          yUpper - pR * 0.28,
+          pR * 0.22,
+          0,
+          Math.PI * 2,
+        );
+        ctx.fillStyle = "rgba(255,255,255,0.85)";
+        ctx.fill();
+
+        const legDX = r * 0.08,
+          legDY = r * 0.14;
+        const legLen0 = Math.sqrt(legDX * legDX + legDY * legDY);
+        const legL = legLen0;
+        const ux = legDX / legLen0,
+          uy = legDY / legLen0;
+        const spread = r * 0.87;
+        const noseBottomY = by + r - 22.7;
+
+        ctx.save();
+        ctx.strokeStyle = "#444";
+        ctx.lineWidth = 1.4;
+        ctx.lineCap = "round";
+        ctx.beginPath();
+        ctx.moveTo(bx - spread - ux * legL, noseBottomY - uy * legL);
+        ctx.lineTo(bx - spread, noseBottomY);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(bx + spread + ux * legL, noseBottomY - uy * legL);
+        ctx.lineTo(bx + spread, noseBottomY);
+        ctx.stroke();
+        ctx.restore();
+
+        ctx.restore();
+      }
+
+      function drawCond7EyebrowsAndMouth(ctx, bx, by, r, changed) {
+        const eyM = by + r * 0.15,
+          eo = r * 0.28,
+          scR = r * 0.22;
+
+        ctx.save();
+        ctx.beginPath();
+        ctx.arc(bx, by, r - 0.5, 0, Math.PI * 2);
+        ctx.clip();
+
+        /* "before" state only — the eyebrows/mouth never change in
+           this control condition, only the ball color changes */
+        const browY = eyM + scR * 2.6;
+        const browHalf = scR * 1.0;
+        ctx.strokeStyle = "#2a1e0a";
+        ctx.lineWidth = r * 0.085;
+        ctx.lineCap = "round";
+        ctx.beginPath();
+        ctx.moveTo(bx - eo - browHalf, browY);
+        ctx.lineTo(bx - eo + browHalf, browY);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(bx + eo - browHalf, browY);
+        ctx.lineTo(bx + eo + browHalf, browY);
+        ctx.stroke();
+
+        ctx.save();
+        ctx.strokeStyle = "#444";
+        ctx.lineWidth = 1.6;
+        ctx.lineCap = "round";
+        ctx.beginPath();
+        ctx.moveTo(bx - r * 0.28, by - r * 0.7);
+        ctx.lineTo(bx + r * 0.28, by - r * 0.7);
+        ctx.stroke();
+        ctx.restore();
+
+        ctx.restore();
+      }
+
+      /* ══════════════════════════════════════════════════════
+   GEOMETRY — shared layout, identical to the uploaded pair1 demo
+══════════════════════════════════════════════════════ */
+      function makeLayout(canvasEl) {
+        function W() {
+          return canvasEl.width;
+        }
+        function agentX0() {
+          return W() * 0.68;
+        }
+        function causeX0() {
+          return W() * 0.12;
+        }
+        function causeStopX() {
+          return agentX0() - getAgentSize() - getPatientSize() - 2;
+        }
+        const Y = canvasEl.height * 0.5;
+        function framesUntilHit() {
+          return Math.ceil((causeStopX() - causeX0()) / getAgentSpeed());
+        }
+        return { W, agentX0, causeX0, causeStopX, Y, framesUntilHit };
+      }
+
+      /* ══════════════════════════════════════════════════════
+   RUNNER — ROW 1 (Social Condition)
+   Exposes showFirstFrame() (draws frame 0, no animation) in
+   addition to run() (full play), matching the pilot experiment's
+   "first frame visible before playback starts" behavior.
+══════════════════════════════════════════════════════ */
+      function makeRunnerNeutral(initCanvas, initStatus, initLoop, getDelay) {
+        let canvasEl = initCanvas,
+          statusEl = initStatus,
+          loopCheckbox = initLoop;
+        function resize() {
+          canvasEl.width = canvasEl.offsetWidth || 640;
+          canvasEl.height = canvasEl.clientHeight || 320;
+        }
+        resize();
+        let ctx = canvasEl.getContext("2d");
+        const BG = "#fafafa";
+        const gazeDir = -1;
+
+        let L = makeLayout(canvasEl);
+        let state = "idle",
+          causeX = 0,
+          changed = false;
+        let frame = 0,
+          effectFrame = 0,
+          animId = null;
+
+        function drawScene() {
+          ctx.clearRect(0, 0, L.W(), canvasEl.height);
+          ctx.fillStyle = BG;
+          ctx.fillRect(0, 0, L.W(), canvasEl.height);
+          const ax = L.agentX0();
+          const patientColor = changed
+            ? PATIENT_AFTER_COLOR
+            : PATIENT_BEFORE_COLOR;
+          drawBall(
+            ctx,
+            ax,
+            L.Y,
+            getPatientSize(),
+            patientColor,
+            getPatientShape(),
+          );
+          drawFaceNeutralGaze(ctx, ax, L.Y, getPatientSize(), gazeDir);
+          drawBall(
+            ctx,
+            causeX,
+            L.Y,
+            getAgentSize(),
+            AGENT_COLOR,
+            getAgentShape(),
+          );
+        }
+
+        function tick() {
+          frame++;
+          if (causeX < L.causeStopX()) {
+            causeX += getAgentSpeed();
+            if (causeX >= L.causeStopX()) {
+              causeX = L.causeStopX();
+              if (state === "approaching") state = "hit";
+            }
+          }
+          if (
+            (state === "approaching" || state === "hit") &&
+            frame >= effectFrame
+          ) {
+            changed = true;
+            state = "expressed";
+          }
+          if (state === "expressed" && frame > effectFrame + 60 * 1.4) {
+            state = "done";
+            cancelAnimationFrame(animId);
+            drawScene();
+            if (loopCheckbox.checked) setTimeout(() => run(), 500);
+            return;
+          }
+          drawScene();
+          animId = requestAnimationFrame(tick);
+        }
+
+        function resetToFrameZero() {
+          resize();
+          L = makeLayout(canvasEl);
+          const d = getDelay(),
+            hitAt = L.framesUntilHit();
+          effectFrame = Math.max(1, hitAt + Math.round(d / (1000 / FPS)));
+          state = "approaching";
+          causeX = L.causeX0();
+          changed = false;
+          frame = 0;
+        }
+
+        function showFirstFrame() {
+          if (animId) cancelAnimationFrame(animId);
+          resetToFrameZero();
+          drawScene();
+        }
+
+        function run() {
+          if (animId) cancelAnimationFrame(animId);
+          resetToFrameZero();
+          drawScene();
+          animId = requestAnimationFrame(tick);
+        }
+
+        function setTarget(newCanvas, newStatus, newLoop) {
+          canvasEl = newCanvas;
+          statusEl = newStatus;
+          loopCheckbox = newLoop;
+          ctx = canvasEl.getContext("2d");
+          resize();
+          L = makeLayout(canvasEl);
+        }
+
+        return { run, showFirstFrame, setTarget };
+      }
+
+      /* ══════════════════════════════════════════════════════
+   RUNNER — ROW 2 (Physical Condition)
+══════════════════════════════════════════════════════ */
+      function makeRunnerScrambled(initCanvas, initStatus, initLoop, getDelay) {
+        let canvasEl = initCanvas,
+          statusEl = initStatus,
+          loopCheckbox = initLoop;
+        function resize() {
+          canvasEl.width = canvasEl.offsetWidth || 640;
+          canvasEl.height = canvasEl.clientHeight || 320;
+        }
+        resize();
+        let ctx = canvasEl.getContext("2d");
+        const BG = "#fafafa";
+
+        let L = makeLayout(canvasEl);
+        let state = "idle",
+          causeX = 0,
+          currentCol = PATIENT_BEFORE_COLOR;
+        let frame = 0,
+          effectFrame = 0,
+          animId = null;
+
+        function drawScene() {
+          ctx.clearRect(0, 0, L.W(), canvasEl.height);
+          ctx.fillStyle = BG;
+          ctx.fillRect(0, 0, L.W(), canvasEl.height);
+          const px = L.agentX0();
+          ctx.save();
+          ctx.translate(px, L.Y);
+          ctx.rotate(Math.PI / 2);
+          ctx.translate(-px, -L.Y);
+          drawBall(
+            ctx,
+            px,
+            L.Y,
+            getPatientSize(),
+            currentCol,
+            getPatientShape(),
+          );
+          drawScrambledFace(ctx, px, L.Y, getPatientSize(), currentCol);
+          drawCond7EyebrowsAndMouth(ctx, px, L.Y, getPatientSize(), false);
+          ctx.restore();
+          drawBall(
+            ctx,
+            causeX,
+            L.Y,
+            getAgentSize(),
+            AGENT_COLOR,
+            getAgentShape(),
+          );
+        }
+
+        function tick() {
+          frame++;
+          if (causeX < L.causeStopX()) {
+            causeX += getAgentSpeed();
+            if (causeX >= L.causeStopX()) {
+              causeX = L.causeStopX();
+              if (state === "approaching") state = "hit";
+            }
+          }
+          if (
+            (state === "approaching" || state === "hit") &&
+            frame >= effectFrame
+          ) {
+            currentCol = PATIENT_AFTER_COLOR;
+            state = "changed";
+          }
+          if (state === "changed" && frame > effectFrame + 60 * 1.4) {
+            state = "done";
+            cancelAnimationFrame(animId);
+            drawScene();
+            if (loopCheckbox.checked) setTimeout(() => run(), 500);
+            return;
+          }
+          drawScene();
+          animId = requestAnimationFrame(tick);
+        }
+
+        function resetToFrameZero() {
+          resize();
+          L = makeLayout(canvasEl);
+          const d = getDelay(),
+            hitAt = L.framesUntilHit();
+          effectFrame = Math.max(1, hitAt + Math.round(d / (1000 / FPS)));
+          state = "approaching";
+          causeX = L.causeX0();
+          currentCol = PATIENT_BEFORE_COLOR;
+          frame = 0;
+        }
+
+        function showFirstFrame() {
+          if (animId) cancelAnimationFrame(animId);
+          resetToFrameZero();
+          drawScene();
+        }
+
+        function run() {
+          if (animId) cancelAnimationFrame(animId);
+          resetToFrameZero();
+          drawScene();
+          animId = requestAnimationFrame(tick);
+        }
+
+        function setTarget(newCanvas, newStatus, newLoop) {
+          canvasEl = newCanvas;
+          statusEl = newStatus;
+          loopCheckbox = newLoop;
+          ctx = canvasEl.getContext("2d");
+          resize();
+          L = makeLayout(canvasEl);
+        }
+
+        return { run, showFirstFrame, setTarget };
+      }
+
+      /* ══════════════════════════════════════════════════════
+   INIT
+══════════════════════════════════════════════════════ */
+      window.addEventListener("load", () => {
+        const loop1 = document.getElementById("loop1");
+        const loop2 = document.getElementById("loop2");
+
+        const r1 = makeRunnerNeutral(
+          document.getElementById("c1"),
+          document.getElementById("st1"),
+          loop1,
+          getDelay1,
+        );
+        const r2 = makeRunnerScrambled(
+          document.getElementById("c2"),
+          document.getElementById("st2"),
+          loop2,
+          getDelay2,
+        );
+
+        document.getElementById("replay1").onclick = () => r1.run();
+        document.getElementById("replay2").onclick = () => r2.run();
+
+        /* Live delay updates restart the running animation */
+        delaySlider1.addEventListener("change", () => r1.run());
+        delaySlider2.addEventListener("change", () => r2.run());
+
+        /* ── Fullscreen expand/close ── */
+        const overlay = document.getElementById("fullscreenOverlay");
+        const fsCanvas = document.getElementById("fsCanvas");
+        const fsStatus = document.getElementById("fsStatus");
+        const alwaysOnLoop = { checked: true };
+
+        const panelMap = {
+          expand1: {
+            runner: r1,
+            canvas: document.getElementById("c1"),
+            status: document.getElementById("st1"),
+            loop: loop1,
+          },
+          expand2: {
+            runner: r2,
+            canvas: document.getElementById("c2"),
+            status: document.getElementById("st2"),
+            loop: loop2,
+          },
+        };
+
+        let activeFs = null;
+
+        Object.keys(panelMap).forEach((btnId) => {
+          document.getElementById(btnId).onclick = () => {
+            const { runner } = panelMap[btnId];
+            activeFs = panelMap[btnId];
+            overlay.classList.add("active");
+            runner.setTarget(fsCanvas, fsStatus, alwaysOnLoop);
+            runner.run();
+          };
+        });
+
+        document.getElementById("fsClose").onclick = () => {
+          if (!activeFs) return;
+          overlay.classList.remove("active");
+          const { runner, canvas, status, loop } = activeFs;
+          runner.setTarget(canvas, status, loop);
+          runner.showFirstFrame();
+          activeFs = null;
+        };
+
+        window.addEventListener("resize", () => {
+          if (activeFs) {
+            activeFs.runner.setTarget(fsCanvas, fsStatus, alwaysOnLoop);
+            activeFs.runner.run();
+          }
+        });
+
+        /* Show only the first frame of each animation initially —
+           matching the pilot experiment, where a trial's first frame
+           is visible before playback begins — rather than auto-
+           playing on load. */
+        r1.showFirstFrame();
+        r2.showFirstFrame();
+      });
+    </script>
+  </body>
+</html>
