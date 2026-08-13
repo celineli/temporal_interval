@@ -24,7 +24,7 @@
              vertically ── */
       .top-wrap {
         width: 100%;
-        max-width: 680px;
+        max-width: 998px;
         display: flex;
         flex-direction: column;
         gap: 32px;
@@ -106,11 +106,13 @@
         font-style: normal;
       }
 
-      /* ── Panel — sized to match each trial's canvas in the pilot
-             experiment (max-width 640px, fixed 320px height) ── */
+      /* ── Panel — sized to match each trial's canvas in
+             spc_pilot1_script_V3_shifted.html (max-width 998px =
+             960px canvas + 2×18px padding + 2×1px border, fixed
+             320px height) ── */
       .panel {
         width: 100%;
-        max-width: 640px;
+        max-width: 998px;
         position: relative;
         display: flex;
         flex-direction: column;
@@ -308,7 +310,7 @@
               >Blue ball approaches; yellow ball turns red after the delay</span
             >
           </div>
-          <canvas id="c1" width="640" height="320"></canvas>
+          <canvas id="c1" width="960" height="320"></canvas>
           <div class="expand-btn" id="expand1" title="Fullscreen">→</div>
           <div class="panel-controls">
             <label class="loop-toggle"
@@ -352,7 +354,7 @@
               >Blue ball approaches; yellow ball turns red after the delay</span
             >
           </div>
-          <canvas id="c2" width="640" height="320"></canvas>
+          <canvas id="c2" width="960" height="320"></canvas>
           <div class="expand-btn" id="expand2" title="Fullscreen">→</div>
           <div class="panel-controls">
             <label class="loop-toggle"
@@ -378,9 +380,15 @@
       "use strict";
 
       /* ══════════════════════════════════════════════════════
-   FIXED STIMULUS PARAMETERS — copied verbatim from the uploaded
-   pair1 demo, matching the pilot experiment's trial canvas
-   (640×320, 26px-radius balls, 6px/frame).
+   FIXED STIMULUS PARAMETERS — ball size/speed copied verbatim from
+   the uploaded pair1 demo (26px-radius balls, 6px/frame — these are
+   unchanged). The canvas itself is now 960×320 instead of 640×320,
+   matching spc_pilot1_script_V3_shifted.html's widened trial canvas:
+   at the same fixed ball size/speed, this makes the mover travel
+   further before reaching the patient (+500ms, 30 frames @ 60fps)
+   and pushes the patient further from the canvas midline — see
+   makeLayout() below, whose x-position fractions of canvas width are
+   unchanged but now apply to the wider canvas.
 ══════════════════════════════════════════════════════ */
       const FPS = 60;
       const MM_TO_PX = 2;
@@ -762,7 +770,14 @@
       }
 
       /* ══════════════════════════════════════════════════════
-   GEOMETRY — shared layout, identical to the uploaded pair1 demo
+   GEOMETRY — same x-position fractions of canvas width as the
+   uploaded pair1 demo (0.68 / 0.12), but the canvas itself is now
+   960px wide instead of 640px (see canvas HTML width attributes and
+   .panel's max-width above), matching
+   spc_pilot1_script_V3_shifted.html's widened trial canvas. At the
+   same fixed ball size/speed, this alone makes the mover travel
+   further before reaching the patient and pushes the patient further
+   from the canvas midline — no change to these formulas was needed.
 ══════════════════════════════════════════════════════ */
       function makeLayout(canvasEl) {
         function W() {
@@ -795,7 +810,7 @@
           statusEl = initStatus,
           loopCheckbox = initLoop;
         function resize() {
-          canvasEl.width = canvasEl.offsetWidth || 640;
+          canvasEl.width = canvasEl.offsetWidth || 960;
           canvasEl.height = canvasEl.clientHeight || 320;
         }
         resize();
@@ -910,7 +925,7 @@
           statusEl = initStatus,
           loopCheckbox = initLoop;
         function resize() {
-          canvasEl.width = canvasEl.offsetWidth || 640;
+          canvasEl.width = canvasEl.offsetWidth || 960;
           canvasEl.height = canvasEl.clientHeight || 320;
         }
         resize();
