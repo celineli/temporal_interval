@@ -1,0 +1,3240 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>SPC Friend Pilot — Experiment 1 (Temporal Judgment, Staircase, Q/P keys)</title>
+    <style>
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+      body {
+        font-family: "Georgia", serif;
+        background: #fff;
+        color: #333;
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        padding: 28px 16px 70px;
+        font-size: 18px;
+      }
+      /* Center the trial screen vertically while it is shown. */
+      body.trial-active {
+        justify-content: center;
+      }
+      h1 {
+        font-size: 24px;
+        font-weight: normal;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: #6a5a40;
+        margin-bottom: 5px;
+      }
+      .subtitle {
+        font-size: 17px;
+        color: #999;
+        margin-bottom: 20px;
+      }
+      #instructions {
+        max-width: 820px;
+        font-size: 18px;
+        line-height: 1.6;
+        margin-bottom: 20px;
+      }
+      #instructions b {
+        color: #b8935a;
+      }
+      .panel {
+        width: 100%;
+        max-width: 640px;
+        display: flex;
+        flex-direction: column;
+      }
+      /* Trial panel width: 960px (the reference size) on small screens,
+         70% of the window on larger ones, at most 1600px. The whole
+         scene scales with this width (see the script). */
+      #mainTrialPanel {
+        max-width: clamp(960px, 70vw, 1600px);
+      }
+      #canvasWrap {
+        position: relative;
+      }
+      #keypressInstruction {
+        position: absolute;
+        top: 12px;
+        left: 0;
+        right: 0;
+        text-align: center;
+        font-size: 13px;
+        color: #a9a9a9;
+        pointer-events: none;
+        white-space: nowrap;
+      }
+      #progressText {
+        font-size: 14px;
+        color: #333;
+        font-weight: bold;
+        text-align: center;
+        margin-bottom: 6px;
+      }
+      #progressOutline {
+        background: #fff;
+        border: 3px solid #000;
+        width: 320px;
+        height: 16px;
+        margin: 0 auto 16px;
+      }
+      #progressBar {
+        background: gray;
+        width: 0%;
+        height: 100%;
+      }
+      canvas {
+        display: block;
+        width: 100%;
+        /* Keep the 960 x 320 (3:1) shape at every width. */
+        height: auto;
+        aspect-ratio: 960 / 320;
+        border: 2px solid #000;
+        border-radius: 6px;
+        background: #fafafa;
+      }
+      #feedbackArea {
+        text-align: center;
+        margin-top: 10px;
+        min-height: 20px;
+        font-size: 19px;
+        color: #b8935a;
+        font-weight: bold;
+      }
+      #progressPanel,
+      #summaryPanel {
+        width: 100%;
+        max-width: 640px;
+        margin-top: 14px;
+        font-size: 16px;
+        color: #777;
+      }
+      #summaryPanel {
+        display: none;
+      }
+      #startExperimentButtonWrap {
+        text-align: center;
+        margin-bottom: 20px;
+      }
+      #startExperimentBtn {
+        font-family: "Georgia", serif;
+        font-size: 19px;
+        font-weight: bold;
+        padding: 10px 22px;
+        border: 1px solid #ddd6c8;
+        border-radius: 6px;
+        background: #b8935a;
+        color: #fff;
+        cursor: pointer;
+      }
+      #startExperimentBtn:hover {
+        background: #a37f47;
+      }
+      #startExperimentBtn:active {
+        background: #8f6d3c;
+      }
+      #finalQuestionsPanel {
+        display: none;
+        width: 100%;
+        max-width: 640px;
+        margin-top: 14px;
+        font-size: 18px;
+        line-height: 1.6;
+      }
+      #finalQuestionsPanel textarea {
+        width: 100%;
+        min-height: 60px;
+        margin-top: 6px;
+        margin-bottom: 14px;
+        font-family: "Georgia", serif;
+        font-size: 17px;
+        padding: 8px;
+        border: 1px solid #ddd6c8;
+        border-radius: 4px;
+        resize: vertical;
+      }
+      #finalSubmitBtn {
+        font-family: "Georgia", serif;
+        font-size: 18px;
+        font-weight: bold;
+        padding: 8px 18px;
+        border: 1px solid #ddd6c8;
+        border-radius: 6px;
+        background: #b8935a;
+        color: #fff;
+        cursor: pointer;
+      }
+      #thankYouPanel {
+        display: none;
+        width: 100%;
+        max-width: 640px;
+        margin-top: 14px;
+        text-align: center;
+        font-size: 20px;
+        color: #6a5a40;
+      }
+      #thankYouContinueBtn {
+        font-family: "Georgia", serif;
+        font-size: 15px;
+        font-weight: bold;
+        padding: 8px 18px;
+        border: 1px solid #ddd6c8;
+        border-radius: 6px;
+        background: #b8935a;
+        color: #fff;
+        cursor: pointer;
+      }
+      #prolificPanel {
+        display: none;
+        width: 100%;
+        max-width: 640px;
+        margin-top: 14px;
+        text-align: center;
+        font-size: 18px;
+        line-height: 1.6;
+        color: #6a5a40;
+        white-space: pre-line;
+      }
+      #prolific_link {
+        display: inline-block;
+        margin-top: 14px;
+        color: #b8935a;
+        font-weight: bold;
+      }
+      #debriefPanel {
+        display: none;
+        width: 100%;
+        max-width: 700px;
+        margin-top: 14px;
+        text-align: center;
+        font-size: 18px;
+        line-height: 1.6;
+        color: #6a5a40;
+      }
+      #debriefPanel p {
+        margin-top: 12px;
+      }
+      #demographicsForm {
+        margin-top: 28px;
+        padding-top: 20px;
+        border-top: 1px solid #e8e1d4;
+        font-size: 16px;
+        color: #333;
+        text-align: left;
+        max-width: 520px;
+        margin-left: auto;
+        margin-right: auto;
+      }
+      #demographicsHeader {
+        font-weight: normal;
+        text-align: left;
+        margin-bottom: 20px;
+        line-height: 1.6;
+      }
+      .demographics-question {
+        margin-bottom: 24px;
+      }
+      .demographics-question-label {
+        font-weight: bold;
+        display: block;
+        margin-bottom: 8px;
+      }
+      .radio-list {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+      }
+      .radio-list label {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-weight: normal;
+        cursor: pointer;
+      }
+      .radio-list input[type="radio"] {
+        width: 16px;
+        height: 16px;
+        cursor: pointer;
+        accent-color: #b8935a;
+        flex-shrink: 0;
+      }
+      .demographics-row {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 14px;
+      }
+      #ageResponse {
+        font-family: "Georgia", serif;
+        font-size: 16px;
+        width: 100px;
+        padding: 6px 8px;
+        border: 1px solid #ddd6c8;
+        border-radius: 4px;
+      }
+      #demographicsSubmitBtn {
+        font-family: "Georgia", serif;
+        font-size: 15px;
+        font-weight: bold;
+        padding: 8px 18px;
+        border: 1px solid #ddd6c8;
+        border-radius: 6px;
+        background: #b8935a;
+        color: #fff;
+        cursor: pointer;
+        display: block;
+        margin: 0 auto;
+      }
+
+      /* ── Response keys: two boxes showing the Q and P keys.
+             Dimmed while the movie plays; full color once the
+             participant can answer. The pressed key is highlighted. ── */
+      .response-keys {
+        display: flex;
+        justify-content: center;
+        gap: 40px;
+      }
+      .response-key {
+        font-family: "Georgia", serif;
+        font-size: 19px;
+        min-width: 96px;
+        padding: 10px 20px;
+        border: 2px solid #ddd6c8;
+        border-radius: 6px;
+        background: #fff;
+        color: #555;
+        text-align: center;
+      }
+      .response-key .keynum {
+        font-size: 22px;
+        font-weight: bold;
+        color: #b8935a;
+      }
+      /* Instruction pages: a key with its number, and its label under it. */
+      .key-example-row {
+        display: flex;
+        justify-content: center;
+        gap: 60px;
+      }
+      .key-example {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+      }
+      .key-example .keycap {
+        width: 64px;
+        height: 56px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border: 2px solid #ddd6c8;
+        border-radius: 6px;
+        background: #fff;
+        font-size: 28px;
+        font-weight: bold;
+        color: #b8935a;
+      }
+      .key-example .key-label {
+        margin-top: 6px;
+        font-size: 19px;
+        color: #555;
+      }
+      .response-keys.waiting .response-key {
+        opacity: 0.4;
+      }
+      .response-key.pressed {
+        border-color: #b8935a;
+        background: #fbf3e6;
+        color: #8f6d3c;
+        font-weight: bold;
+      }
+
+      /* ── Attention-check panel (comprehension checks) ── */
+      #attentionCheckPanel {
+        display: none;
+      }
+      #acQuestionText {
+        font-size: 19px;
+        font-weight: bold;
+        text-align: center;
+        color: #333;
+        margin-bottom: 16px;
+        line-height: 1.5;
+      }
+      .ac-buttons {
+        display: flex;
+        justify-content: center;
+        gap: 16px;
+      }
+      .ac-btn {
+        font-family: "Georgia", serif;
+        font-size: 19px;
+        padding: 10px 30px;
+        border: 2px solid #ddd6c8;
+        border-radius: 6px;
+        background: #fff;
+        color: #555;
+        cursor: pointer;
+        transition:
+          border-color 0.15s,
+          background 0.15s,
+          color 0.15s;
+      }
+      .ac-btn:hover {
+        border-color: #b8935a;
+      }
+      .ac-btn.selected {
+        border-color: #b8935a;
+        background: #fbf3e6;
+        color: #8f6d3c;
+        font-weight: bold;
+      }
+      #acSubmitBtn {
+        font-family: "Georgia", serif;
+        font-size: 19px;
+        font-weight: bold;
+        padding: 8px 18px;
+        border: 1px solid #ddd6c8;
+        border-radius: 6px;
+        background: #b8935a;
+        color: #fff;
+        cursor: pointer;
+      }
+      #acSubmitBtn:disabled {
+        background: #ddd6c8;
+        color: #fff;
+        cursor: not-allowed;
+      }
+
+      /* ── Full-screen entry page ── */
+      #fullscreenPage {
+        max-width: 640px;
+        width: 100%;
+        margin-top: 40px;
+        text-align: center;
+        line-height: 1.6;
+      }
+      #fullscreenPage p {
+        margin-bottom: 16px;
+        font-size: 19px;
+      }
+      #enterFullscreenBtn {
+        font-family: "Georgia", serif;
+        font-size: 19px;
+        font-weight: bold;
+        padding: 10px 22px;
+        border: 1px solid #ddd6c8;
+        border-radius: 6px;
+        background: #b8935a;
+        color: #fff;
+        cursor: pointer;
+      }
+      #enterFullscreenBtn:hover {
+        background: #a37f47;
+      }
+      #enterFullscreenBtn:disabled {
+        background: #ddd6c8;
+        cursor: wait;
+      }
+
+      /* ── Mid-study block break panel (reused before blocks 2, 3, 4) ── */
+      #blockBreakPanel {
+        display: none;
+        max-width: 820px;
+        width: 100%;
+        line-height: 1.6;
+        font-size: 18px;
+        text-align: left;
+      }
+      #blockBreakContinueBtn {
+        font-family: "Georgia", serif;
+        font-size: 19px;
+        font-weight: bold;
+        padding: 10px 22px;
+        border: 1px solid #ddd6c8;
+        border-radius: 6px;
+        background: #b8935a;
+        color: #fff;
+        cursor: pointer;
+        display: block;
+        margin: 14px auto 0;
+      }
+
+      /* ── Pause / break overlay (toggled with the Delete key) ── */
+      #pauseOverlay {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(255, 255, 255, 0.97);
+        z-index: 9000;
+        align-items: center;
+        justify-content: center;
+        flex-direction: column;
+        text-align: center;
+        padding: 20px;
+      }
+      #pauseOverlay p {
+        max-width: 480px;
+        font-size: 20px;
+        color: #6a5a40;
+        margin-bottom: 16px;
+        line-height: 1.6;
+      }
+      #resumeBtn {
+        font-family: "Georgia", serif;
+        font-size: 19px;
+        font-weight: bold;
+        padding: 10px 22px;
+        border: 1px solid #ddd6c8;
+        border-radius: 6px;
+        background: #b8935a;
+        color: #fff;
+        cursor: pointer;
+      }
+
+      /* ── End-study confirmation overlay (X key) ── */
+      #exitConfirmOverlay {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(255, 255, 255, 0.97);
+        z-index: 9100;
+        align-items: center;
+        justify-content: center;
+        flex-direction: column;
+        text-align: center;
+        padding: 20px;
+      }
+      #exitConfirmOverlay p {
+        max-width: 560px;
+        font-size: 20px;
+        color: #6a5a40;
+        margin-bottom: 20px;
+        line-height: 1.6;
+      }
+      #exitConfirmOverlay .exit-confirm-buttons {
+        display: flex;
+        gap: 20px;
+        justify-content: center;
+        flex-wrap: wrap;
+        max-width: 700px;
+      }
+      #exitCancelBtn,
+      #exitConfirmBtn {
+        font-family: "Georgia", serif;
+        font-size: 17px;
+        font-weight: bold;
+        padding: 12px 20px;
+        border-radius: 6px;
+        cursor: pointer;
+        max-width: 280px;
+      }
+      #exitCancelBtn {
+        border: 1px solid #ddd6c8;
+        background: #b8935a;
+        color: #fff;
+      }
+      #exitConfirmBtn {
+        border: 1px solid #b8935a;
+        background: #fff;
+        color: #b8935a;
+      }
+      #bottomRightControls {
+        position: fixed;
+        bottom: 16px;
+        right: 16px;
+        z-index: 500;
+        display: flex;
+        gap: 10px;
+      }
+      #attentionCheckBtn,
+      #skipBtn,
+      .version-btn {
+        font-family: "Georgia", serif;
+        font-size: 13px;
+        padding: 7px 14px;
+        border: 1px solid #ddd6c8;
+        border-radius: 6px;
+        background: #fff;
+        color: #999;
+        cursor: pointer;
+      }
+      #attentionCheckBtn:hover,
+      #skipBtn:hover,
+      .version-btn:hover {
+        border-color: #b8935a;
+        color: #b8935a;
+      }
+      /* The chosen scrambled-face version (A, B, C or D) is filled in. */
+      .version-btn.selected {
+        border-color: #b8935a;
+        background: #b8935a;
+        color: #fff;
+      }
+
+      /* ── Full-screen reminder (shown if the participant leaves
+             full screen during the study) ── */
+      #fullscreenReminderOverlay {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(255, 255, 255, 0.97);
+        z-index: 9050;
+        align-items: center;
+        justify-content: center;
+        flex-direction: column;
+        text-align: center;
+        padding: 20px;
+      }
+      #fullscreenReminderOverlay p {
+        max-width: 560px;
+        font-size: 20px;
+        color: #6a5a40;
+        margin-bottom: 20px;
+        line-height: 1.6;
+      }
+      #returnToFullscreenBtn {
+        font-family: "Georgia", serif;
+        font-size: 17px;
+        font-weight: bold;
+        padding: 12px 20px;
+        border: 1px solid #ddd6c8;
+        border-radius: 6px;
+        background: #b8935a;
+        color: #fff;
+        cursor: pointer;
+      }
+
+      /* ── Consent page (first page shown) ── */
+      #consentPage {
+        max-width: 820px;
+        width: 100%;
+        margin-top: 20px;
+      }
+      #consentPage h2 {
+        font-size: 22px;
+        font-weight: normal;
+        color: #6a5a40;
+        text-align: center;
+        margin-bottom: 20px;
+      }
+      #consentPage .consent-body {
+        text-align: left;
+        font-size: 16px;
+        line-height: 1.6;
+      }
+      #consentPage .consent-body p {
+        margin-bottom: 16px;
+      }
+      #consentPage .consent-body b {
+        color: #b8935a;
+      }
+      #consentQuestion {
+        font-size: 18px;
+        font-weight: bold;
+        text-align: center;
+        margin: 24px 0 12px;
+      }
+      .consent-options {
+        display: flex;
+        justify-content: center;
+        gap: 40px;
+        margin-bottom: 20px;
+      }
+      .consent-options label {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 17px;
+        cursor: pointer;
+      }
+      .consent-options input[type="radio"] {
+        width: 18px;
+        height: 18px;
+        cursor: pointer;
+        accent-color: #b8935a;
+      }
+      #consentContinueBtn {
+        display: block;
+        margin: 0 auto;
+        font-family: "Georgia", serif;
+        font-size: 17px;
+        font-weight: bold;
+        padding: 10px 22px;
+        border: 1px solid #ddd6c8;
+        border-radius: 6px;
+        background: #b8935a;
+        color: #fff;
+        cursor: pointer;
+      }
+      #consentContinueBtn:disabled {
+        background: #ddd6c8;
+        cursor: not-allowed;
+      }
+      #consentDeclinePage {
+        display: none;
+        max-width: 640px;
+        width: 100%;
+        margin-top: 60px;
+        text-align: center;
+        font-size: 18px;
+        line-height: 1.6;
+        color: #6a5a40;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="bottomRightControls">
+      <button id="attentionCheckBtn" type="button">Attention Check</button>
+      <button id="skipBtn" type="button">Skip</button>
+      <button id="versionBtnA" class="version-btn selected" type="button">A</button>
+      <button id="versionBtnB" class="version-btn" type="button">B</button>
+      <button id="versionBtnC" class="version-btn" type="button">C</button>
+      <button id="versionBtnD" class="version-btn" type="button">D</button>
+    </div>
+
+    <div id="pauseOverlay">
+      <p>You took a short break. Press "Resume" when you are ready to continue.</p>
+      <button id="resumeBtn">Resume</button>
+    </div>
+
+    <div id="exitConfirmOverlay">
+      <p>You pressed X. Are you sure you want to exit the experiment?</p>
+      <div class="exit-confirm-buttons">
+        <button id="exitCancelBtn">
+          That was an accident. I want to continue the experiment.
+        </button>
+        <button id="exitConfirmBtn">
+          I confirm that I want to exit the experiment.
+        </button>
+      </div>
+    </div>
+
+    <div id="fullscreenReminderOverlay">
+      <p>
+        You have exited full-screen mode. Please return to full-screen to
+        continue the experiment.
+      </p>
+      <button id="returnToFullscreenBtn">Return to Full-Screen</button>
+    </div>
+
+    <div id="consentPage">
+      <h2>Consent to Participate in Research</h2>
+      <div class="consent-body">
+        <p>
+          <b>Purpose:</b><br />
+          The purpose of this study is to understand how people think about
+          events.
+        </p>
+        <p>
+          <b>Procedures:</b><br />
+          In this study, you will watch videos, read sentences, or see
+          pictures, and answer simple questions about them. This study
+          should take approximately 16 minutes.
+        </p>
+        <p>
+          <b>Participation:</b><br />
+          Participation in this study is voluntary. If you decide to join
+          now, you can change your mind later.
+        </p>
+        <p>
+          <b>Payment:</b><br />
+          You will be paid $15.00/hour for participating in this study.
+          Given the estimated duration of 16 minutes, your payment will
+          amount to $4.
+        </p>
+        <p>
+          <b>Risks and benefits:</b><br />
+          There are no risks associated with participating in this study.
+          There are no direct benefits associated with participating in
+          this study.
+        </p>
+        <p>
+          <b>Use of data by study researchers:</b><br />
+          The research team led by Shari Liu at JHU will have access to
+          your answers.
+        </p>
+        <p>
+          <b>Publication of results:</b><br />
+          The results of the research may be presented at scientific
+          meetings or published in scientific journals. Your individual
+          responses may be published. We will never publish your name, the
+          date that you participated, and any other information that could
+          be used to identify you.
+        </p>
+        <p>
+          <b>Researcher contact information:</b><br />
+          This study is run by Dr. Shari Liu at JHU. If you have any
+          questions or concerns about this study, or in the very unlikely
+          event of a research-related injury, please contact
+          sliu199@jhu.edu.
+        </p>
+        <p>
+          <b>Research Rights information:</b><br />
+          If you have questions about your rights as a research participant
+          or feel that you have not been treated fairly, please call the
+          Homewood Institutional Review Board at Johns Hopkins University
+          at (410) 516-6580. If you have any questions or issues completing
+          the survey, please email Shari Liu at sliu199@jhu.edu.
+        </p>
+      </div>
+      <p id="consentQuestion">Do you consent to participate?</p>
+      <div class="consent-options">
+        <label>
+          <input type="radio" name="consentChoice" value="yes" />
+          Yes
+        </label>
+        <label>
+          <input type="radio" name="consentChoice" value="no" />
+          No
+        </label>
+      </div>
+      <button id="consentContinueBtn" disabled>Continue</button>
+    </div>
+
+    <div id="consentDeclinePage">
+      <p>
+        Thank you for your time. Since you have not consented to
+        participate, the study will now end here. You may close this
+        window.
+      </p>
+    </div>
+
+    <div id="fullscreenPage" style="display: none">
+      <p>
+        The experiment works best on Chrome. If you are using a different
+        browser (e.g., Firefox or Safari), please copy the experiment URL and
+        open it in Chrome instead.
+      </p>
+      <p>
+        Once you are using Chrome, click the button below to enter
+        full-screen mode and continue to the instructions.
+      </p>
+      <button id="enterFullscreenBtn">Enter Full-Screen &amp; Continue</button>
+    </div>
+
+    <div id="instructions" style="display: none">
+      <p>
+        Welcome! In this experiment, you will see short movies. All of the
+        movies have two things in them: a <b style="color: #7a9ec9"
+          >BLUE THING</b
+        >
+        and a <b style="color: #e8b860">YELLOW THING</b>.
+      </p>
+      <div
+        style="
+          display: flex;
+          justify-content: center;
+          gap: 40px;
+          align-items: flex-start;
+          margin: 10px 0 16px;
+        "
+      >
+        <div style="text-align: center">
+          <img
+            id="block1BlueImg"
+            src=""
+            alt="Blue thing"
+            style="width: 90px; height: 90px; display: block"
+          />
+        </div>
+        <div style="text-align: center">
+          <img
+            id="block1YellowImg"
+            src=""
+            alt="Yellow thing"
+            style="width: 90px; height: 90px; display: block"
+          />
+        </div>
+      </div>
+      <p>
+        In each movie, something will happen to
+        <b style="color: #7a9ec9">BLUE</b> and something will happen to
+        <b style="color: #e8b860">YELLOW</b>. After you watch the movie,
+        please answer whether <b style="color: #e8b860">YELLOW</b> changed
+        before, or after, <b style="color: #7a9ec9">BLUE</b> contacted it.
+      </p>
+      <p>Here’s an example of the first frame of the movie:</p>
+      <div
+        style="
+          text-align: center;
+          margin-top: 10px;
+          margin-bottom: 16px;
+          width: 840px;
+          max-width: 95vw;
+          margin-left: 50%;
+          transform: translateX(-50%);
+        "
+      >
+        <img
+          id="block1SceneImg"
+          src=""
+          alt="Example movie frame"
+          style="max-width: 100%; width: 840px; display: inline-block"
+        />
+      </div>
+      <p>After watching the movie, here’s the question:</p>
+      <div
+        style="
+          font-size: 20px;
+          text-align: center;
+          line-height: 1.5;
+          margin-top: 10px;
+          margin-bottom: 16px;
+        "
+      >
+        Did <b style="color: #e8b860">YELLOW</b> change before, or after
+          <b style="color: #7a9ec9">BLUE</b> contacted it?
+      </div>
+      <p>
+        You will use the Q and P keys on your keyboard to answer. Press Q
+        for "Before", or P for "After".
+      </p>
+      <div
+        style="
+          font-size: 20px;
+          text-align: center;
+          line-height: 1.5;
+          margin-top: 10px;
+          margin-bottom: 16px;
+        "
+      >
+        <div class="key-example-row">
+          <div class="key-example">
+            <div class="keycap">Q</div>
+            <div class="key-label">Before</div>
+          </div>
+          <div class="key-example">
+            <div class="keycap">P</div>
+            <div class="key-label">After</div>
+          </div>
+        </div>
+      </div>
+      <p>
+        <b>Important:</b> You will only be allowed to watch each movie one
+        time before giving your answer, so please pay close attention! On each
+        trial, once you are ready to watch the movie, press SPACE on your
+        keyboard.
+      </p>
+      <p>
+        No need to overthink your answer; please respond based on your
+        intuition. Feel free to take an occasional break if you need to. To do
+        so, press the Delete key. You can also end the experiment early at
+        any time by pressing X.
+      </p>
+      <p>When you're ready, click "Start Experiment" to begin.</p>
+    </div>
+
+    <div id="startExperimentButtonWrap" style="display: none">
+      <button id="startExperimentBtn">Start Experiment</button>
+    </div>
+
+    <div class="panel" id="mainTrialPanel" style="display: none">
+      <div id="progressText">Progress</div>
+      <div id="progressOutline">
+        <div id="progressBar"></div>
+      </div>
+      <div
+        id="trialQuestion"
+        style="
+          font-size: 20px;
+          text-align: center;
+          line-height: 1.5;
+          margin-bottom: 12px;
+          white-space: nowrap;
+        "
+      >
+        Did <b style="color: #e8b860">YELLOW</b> change before, or after
+        <b style="color: #7a9ec9">BLUE</b> contacted it?
+      </div>
+      <div id="canvasWrap">
+        <div id="keypressInstruction" style="visibility: hidden">
+          Press SPACE on your keyboard when you are ready to watch the movie.
+        </div>
+        <canvas id="expCanvas" width="960" height="320"></canvas>
+      </div>
+      <!-- "Recorded." is always here; it is only made visible or invisible,
+           so it always takes the same space and nothing below it moves. -->
+      <div id="feedbackArea" style="visibility: hidden">Recorded.</div>
+      <div id="responseArea" style="display: none; margin-top: 14px">
+        <div id="responseKeys" class="response-keys waiting">
+          <div id="beforeKey" class="response-key">
+            <span class="keynum">Q</span>
+          </div>
+          <div id="afterKey" class="response-key">
+            <span class="keynum">P</span>
+          </div>
+        </div>
+        <div
+          style="
+            text-align: center;
+            margin-top: 10px;
+            font-size: 15px;
+            color: #888;
+          "
+        >
+          Press Q for "Before", or P for "After".
+        </div>
+        <div
+          style="
+            text-align: center;
+            margin-top: 10px;
+            font-size: 13px;
+            color: #999;
+          "
+        >
+          Press Delete key to take a break. Press X to exit the experiment.
+        </div>
+      </div>
+    </div>
+
+    <div class="panel" id="attentionCheckPanel">
+      <div id="acQuestionText"></div>
+      <div class="ac-buttons">
+        <button id="acLeftBtn" class="ac-btn" type="button">Left</button>
+        <button id="acRightBtn" class="ac-btn" type="button">Right</button>
+      </div>
+      <div style="text-align: center; margin-top: 16px">
+        <button id="acSubmitBtn" disabled>Submit</button>
+      </div>
+    </div>
+
+    <div class="panel" id="blockBreakPanel">
+      <p id="blockBreakGreeting"></p>
+      <div
+        style="
+          display: flex;
+          justify-content: center;
+          gap: 40px;
+          align-items: flex-start;
+          margin: 10px 0 16px;
+        "
+      >
+        <div style="text-align: center">
+          <img
+            id="blockBreakBlueImg"
+            src=""
+            alt="Blue thing"
+            style="width: 90px; height: 90px; display: block"
+          />
+        </div>
+        <div style="text-align: center">
+          <img
+            id="blockBreakYellowImg"
+            src=""
+            alt="Yellow thing"
+            style="width: 90px; height: 90px; display: block"
+          />
+        </div>
+      </div>
+      <p id="blockBreakRateText"></p>
+      <div
+        style="
+          font-size: 20px;
+          text-align: center;
+          line-height: 1.5;
+          margin-top: 10px;
+          margin-bottom: 16px;
+        "
+      >
+        Did <b style="color: #e8b860">YELLOW</b> change before, or after
+          <b style="color: #7a9ec9">BLUE</b> contacted it?
+      </div>
+      <div
+        style="
+          font-size: 20px;
+          text-align: center;
+          line-height: 1.5;
+          margin-top: 10px;
+          margin-bottom: 16px;
+        "
+      >
+        <div class="key-example-row">
+          <div class="key-example">
+            <div class="keycap">Q</div>
+            <div class="key-label">Before</div>
+          </div>
+          <div class="key-example">
+            <div class="keycap">P</div>
+            <div class="key-label">After</div>
+          </div>
+        </div>
+      </div>
+      <p>Press Continue when you are ready to watch each movie.</p>
+      <button id="blockBreakContinueBtn">Continue</button>
+    </div>
+
+    <div id="finalQuestionsPanel">
+      <div><b>The experiment is done!</b></div>
+      <p>Before you finish, please answer two quick questions:</p>
+      <label for="q1Response"
+        >1. What do you think the experiment was about?</label
+      >
+      <textarea id="q1Response"></textarea>
+      <label for="q2Response">2. What strategies did you use?</label>
+      <textarea id="q2Response"></textarea>
+      <div style="text-align: center">
+        <button id="finalSubmitBtn">Submit</button>
+      </div>
+    </div>
+
+    <div id="debriefPanel">
+      <div><b>Thank you for participating in this study!</b></div>
+      <p>
+        In this study, we were interested in the spatial and temporal
+        factors that shape how people understand causal events involving
+        physical objects and social agents.
+      </p>
+      <div id="demographicsForm">
+        <p id="demographicsHeader">
+          Our funding sources require us to collect demographic information
+          of our participants using the categories below. We understand
+          that these categories do not reflect all identities; you are
+          free to answer as many or as few of these questions as you would
+          like to.
+        </p>
+
+        <div class="demographics-question">
+          <span class="demographics-question-label"
+            >What race do you identify as? (Please circle one)</span
+          >
+          <div class="radio-list">
+            <label>
+              <input type="radio" name="raceChoice" value="American Indian" />
+              1. American Indian
+            </label>
+            <label>
+              <input type="radio" name="raceChoice" value="Asian" />
+              2. Asian
+            </label>
+            <label>
+              <input type="radio" name="raceChoice" value="Black" />
+              3. Black
+            </label>
+            <label>
+              <input type="radio" name="raceChoice" value="Hawaiian" />
+              4. Hawaiian
+            </label>
+            <label>
+              <input
+                type="radio"
+                name="raceChoice"
+                value="More than one race"
+              />
+              5. More than one race
+            </label>
+            <label>
+              <input type="radio" name="raceChoice" value="Unknown" />
+              6. Unknown
+            </label>
+            <label>
+              <input type="radio" name="raceChoice" value="White" />
+              7. White
+            </label>
+          </div>
+        </div>
+
+        <div class="demographics-question">
+          <span class="demographics-question-label"
+            >What ethnicity do you identify as? (Please circle one)</span
+          >
+          <div class="radio-list">
+            <label>
+              <input
+                type="radio"
+                name="ethnicityChoice"
+                value="Not Hispanic or Latino"
+              />
+              1. Not Hispanic or Latino
+            </label>
+            <label>
+              <input
+                type="radio"
+                name="ethnicityChoice"
+                value="Hispanic or Latino"
+              />
+              2. Hispanic or Latino
+            </label>
+            <label>
+              <input type="radio" name="ethnicityChoice" value="Unknown" />
+              3. Unknown
+            </label>
+          </div>
+        </div>
+
+        <div class="demographics-question">
+          <span class="demographics-question-label"
+            >What gender do you identify as? (Please circle one)</span
+          >
+          <div class="radio-list">
+            <label>
+              <input type="radio" name="genderChoice" value="Female" />
+              1. Female
+            </label>
+            <label>
+              <input type="radio" name="genderChoice" value="Male" />
+              2. Male
+            </label>
+            <label>
+              <input type="radio" name="genderChoice" value="Unknown" />
+              3. Unknown
+            </label>
+          </div>
+        </div>
+
+        <div class="demographics-question">
+          <span class="demographics-question-label"
+            >What is your current age, in years?</span
+          >
+          <div class="demographics-row">
+            <input type="text" id="ageResponse" />
+          </div>
+        </div>
+
+        <div style="text-align: center; margin-top: 16px">
+          <button id="demographicsSubmitBtn">Submit</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="thankYouPanel">
+      <div><b>Thank you! Your responses have been recorded.</b></div>
+      <div style="margin-top: 8px">
+        <button id="downloadBtn">Download trial-by-trial data (CSV)</button>
+      </div>
+      <div style="margin-top: 16px">
+        <button id="thankYouContinueBtn">Continue</button>
+      </div>
+    </div>
+
+    <div id="prolificPanel">
+      <p id="endInstructions"></p>
+      <a id="prolific_link" href="#" target="_blank" rel="noopener"></a>
+    </div>
+
+    <script>
+      "use strict";
+
+      /* =================================================================
+         EXPERIMENT 1 — causal perception with line changes
+
+         One trial: a BLUE ball rolls toward a stationary YELLOW ball and
+         stops when it touches it. After a delay (the "offset") relative
+         to the moment of contact, the lines on YELLOW's face change.
+         YELLOW never changes color. A negative offset means the change
+         happens BEFORE contact. The participant judges whether YELLOW
+         changed before or after BLUE contacted it, by pressing the Q key
+         ("before") or the P key ("after").
+
+         Two conditions:
+           "intact" (social):      upright face; neutral -> angry
+                                   (eyebrows slant, mouth becomes a frown)
+           "scrambled" (physical): rotated, scrambled face (mirrored when
+                                   BLUE comes from the right, like the
+                                   intact face); flat eyebrows
+                                   and mouth -> slanted eyebrows and a
+                                   frown arc. There are 3 versions of the
+                                   scrambled face (A, B, C), plus a
+                                   testing version D: the same face parts
+                                   at new random, non-overlapping spots
+                                   and random angles on every trial.
+
+         Design: 4 blocks, alternating intact and scrambled. The offset on
+         each trial is chosen by adaptive staircases (section 3), which
+         home in on each participant's point of subjective equality (PSE):
+         the offset at which they answer "before" and "after" equally often.
+         Each condition has its own two staircases, so we get one PSE per
+         condition per participant. Each condition's staircases run in that
+         condition's two blocks (e.g. blocks 1 and 3), picking up in the
+         second block where they stopped in the first.
+
+         Counterbalancing: each participant gets a number (1, 2, 3, ...)
+         in the order they click "Enter Full-Screen & Continue". The
+         number sets the scrambled version (A, B, C, A, ...) and the first
+         block (scrambled, intact, scrambled, ...), so every 6
+         participants cover all 6 combinations (see section 19).
+
+         Screen size: the scene is designed on a 960-px-wide canvas (what
+         a 13-inch laptop shows). On other screens EVERYTHING is scaled by
+         canvasWidth / 960: positions, ball size, line widths and BLUE's
+         speed. So the scene looks the same everywhere, and BLUE's travel
+         time (about 3.75 s) is identical on every screen.
+         ================================================================= */
+
+      /* ---------- Small helpers used throughout ---------- */
+
+      function el(id) {
+        return document.getElementById(id);
+      }
+      function show(id, displayStyle = "block") {
+        el(id).style.display = displayStyle;
+      }
+      function hide(id) {
+        el(id).style.display = "none";
+      }
+      // True if the element is currently visible on screen.
+      function isShown(id) {
+        return getComputedStyle(el(id)).display !== "none";
+      }
+
+      /* =================================================================
+         1. PROLIFIC IDs
+         Prolific adds these to the study URL. They are saved with the
+         data so responses can be matched to Prolific records.
+         ================================================================= */
+      const urlParams = new URLSearchParams(window.location.search);
+      const prolificPID = urlParams.get("PROLIFIC_PID") || "";
+      const studyID = urlParams.get("STUDY_ID") || "";
+      const sessionID = urlParams.get("SESSION_ID") || "";
+
+      // Unique key for this participant's row in the Google Sheet.
+      // When testing outside Prolific (no SESSION_ID), a random key is used.
+      const rowKey =
+        sessionID ||
+        "local-" + Date.now() + "-" + Math.floor(Math.random() * 1e6);
+
+      /* =================================================================
+         2. INSTRUCTION IMAGES
+            None are stored: BLUE, YELLOW and the example movie frame are
+            drawn by the script with the same code as the trials (see
+            section 9), so they always match what participants see.
+         ================================================================= */
+
+      /* =================================================================
+         3. STAIRCASES
+         Each condition (intact, scrambled) has two staircases:
+           "early" starts at -600 ms (YELLOW clearly changes BEFORE contact)
+           "late"  starts at +600 ms (YELLOW clearly changes AFTER contact)
+         On each trial one of the condition's staircases is picked at
+         random, and its current value is the trial's offset.
+
+         Rule (1-up/1-down, based on the answer itself):
+           "before" -> next offset on that staircase is LATER  (+ step)
+           "after"  -> next offset on that staircase is EARLIER (- step)
+         This settles where "before" and "after" are equally likely
+         (the PSE). Both staircases can go anywhere from -1000 to +1000 ms,
+         so they can cross 0 and both track the same PSE.
+
+         Step size: 100 ms until the staircase's first reversal (to get
+         close quickly), then 33 ms (two frames on a 60 Hz screen). The
+         100 ms step is also used whenever the offset is more than 300 ms
+         from 0, so a stray answer far out cannot strand the staircase
+         with small steps.
+         A "reversal" is when the answer switches direction, e.g. the
+         staircase was moving later and now moves earlier.
+
+         A staircase stops after 12 reversals, or after 35 trials as a
+         safety limit. PSE = mean offset at its reversals, ignoring the
+         first 2 (made while still approaching). The condition's PSE pools
+         the kept reversals of both staircases.
+         ================================================================= */
+      const MIN_DELAY = -1000; // ms
+      const MAX_DELAY = 1000; // ms
+      const START_DELAY = 600; // ms: "early" starts at -600, "late" at +600
+      const COARSE_STEP = 100; // ms, used until the first reversal
+      const FINE_STEP = 33; // ms, used after the first reversal
+      const FINE_ZONE = 300; // ms: fine steps only between -300 and +300
+      const REVERSALS_TO_STOP = 12;
+      const MAX_TRIALS_PER_STAIRCASE = 35;
+      const REVERSALS_TO_DISCARD = 2;
+      // In a condition's FIRST block, each staircase runs at most this
+      // many trials; the rest happen in that condition's second block.
+      const MAX_TRIALS_FIRST_BLOCK = 18;
+      const TOTAL_BLOCKS = 4;
+
+      // Staircase class, copied from staircase.js (unchanged apart from
+      // removing the "export" lines so it works inside this file).
+      // "up" = add up.increment to the value, "down" = add down.increment.
+      class Staircase {
+        constructor(
+          min = 1,
+          max = 10,
+          start = min,
+          up = { increment: +1, repeatsToMove: 1 },
+          down = { increment: -1, repeatsToMove: 1 },
+        ) {
+          this.minimum = min;
+          this.maximum = max;
+          this.up = up;
+          this.down = down;
+          this.currentStep = start;
+          this.repeats = { up: 0, down: 0 };
+          this.reversals = 0;
+          this.lastStepDirection = null;
+          this.history = [];
+          this._start = start;
+        }
+        moveUp() {
+          return this._move("up");
+        }
+        moveDown() {
+          return this._move("down");
+        }
+        _move(direction) {
+          const otherDirection = direction === "up" ? "down" : "up";
+          this.repeats[otherDirection] = 0;
+          this.history.push(this.currentStep);
+          if (++this.repeats[direction] >= this[direction].repeatsToMove) {
+            this.repeats[direction] = 0;
+            if (this._start) {
+              if (
+                this._start ===
+                this._bindValue(this.currentStep + this[direction].increment)
+              ) {
+                return this.currentStep;
+              } else {
+                this._start = undefined;
+              }
+            }
+            if (
+              Math.sign(this.lastStepDirection) ===
+              Math.sign(this[otherDirection].increment)
+            ) {
+              this.reversals++;
+            }
+            this.lastStepDirection = this[direction].increment;
+            return (this.currentStep = this._bindValue(
+              this.currentStep + this[direction].increment,
+            ));
+          } else {
+            return false;
+          }
+        }
+        _bindValue(value) {
+          if (this.maximum > this.minimum) {
+            return value > this.maximum
+              ? this.maximum
+              : value < this.minimum
+                ? this.minimum
+                : value;
+          } else {
+            return value > this.minimum
+              ? this.minimum
+              : value < this.maximum
+                ? this.maximum
+                : value;
+          }
+        }
+      }
+
+      // Makes one staircase plus the bookkeeping we need for it.
+      function makeStaircase(condition, name, start) {
+        return {
+          condition: condition,
+          name: name, // "early" or "late"
+          start: start,
+          stair: new Staircase(
+            MIN_DELAY,
+            MAX_DELAY,
+            start,
+            { increment: +COARSE_STEP, repeatsToMove: 1 }, // up = later
+            { increment: -COARSE_STEP, repeatsToMove: 1 }, // down = earlier
+          ),
+          trials: 0,
+          reversalDelays: [], // offset (ms) on each trial that was a reversal
+          done: false,
+        };
+      }
+
+      const staircases = {
+        intact: [
+          makeStaircase("intact", "early", -START_DELAY),
+          makeStaircase("intact", "late", +START_DELAY),
+        ],
+        scrambled: [
+          makeStaircase("scrambled", "early", -START_DELAY),
+          makeStaircase("scrambled", "late", +START_DELAY),
+        ],
+      };
+      const allStaircases = staircases.intact.concat(staircases.scrambled);
+
+      // Filled in by setBlockOrder() once the participant's first
+      // condition is known (section 19).
+      let blockOrder = [];
+      let currentBlock = 1;
+      let trialsInBlock = 0;
+
+      // Blocks alternate between the two conditions, starting with
+      // firstCondition ("intact" or "scrambled").
+      function setBlockOrder(firstCondition) {
+        const secondCondition =
+          firstCondition === "intact" ? "scrambled" : "intact";
+        blockOrder = [
+          firstCondition,
+          secondCondition,
+          firstCondition,
+          secondCondition,
+        ];
+      }
+
+      // Staircases that may still run a trial in the given block.
+      function availableStaircases(block) {
+        const condition = blockOrder[block - 1];
+        const isFirstBlockOfCondition = block <= 2;
+        return staircases[condition].filter((s) => {
+          if (s.done) return false;
+          if (isFirstBlockOfCondition && s.trials >= MAX_TRIALS_FIRST_BLOCK)
+            return false;
+          return true;
+        });
+      }
+
+      // Updates a staircase with the participant's answer.
+      // Returns the step size used and whether this trial was a reversal.
+      function updateStaircase(s, delay, response) {
+        const stepUsed = Math.abs(s.stair.up.increment);
+        const reversalsBefore = s.stair.reversals;
+
+        if (response === "before") s.stair.moveUp(); // later next time
+        else s.stair.moveDown(); // earlier next time
+
+        const isReversal = s.stair.reversals > reversalsBefore;
+        if (isReversal) s.reversalDelays.push(delay);
+
+        // Choose the step for this staircase's NEXT trial: fine after the
+        // first reversal, but only within -300 to +300 ms.
+        const useFineStep =
+          s.stair.reversals >= 1 && Math.abs(s.stair.currentStep) <= FINE_ZONE;
+        const step = useFineStep ? FINE_STEP : COARSE_STEP;
+        s.stair.up.increment = +step;
+        s.stair.down.increment = -step;
+
+        s.trials++;
+        if (
+          s.stair.reversals >= REVERSALS_TO_STOP ||
+          s.trials >= MAX_TRIALS_PER_STAIRCASE
+        ) {
+          s.done = true;
+        }
+        return { stepUsed: stepUsed, isReversal: isReversal };
+      }
+
+      // Mean of a list of numbers (null if the list is empty).
+      function mean(numbers) {
+        if (numbers.length === 0) return null;
+        let total = 0;
+        for (const x of numbers) total += x;
+        return Math.round(total / numbers.length);
+      }
+
+      // Reversals we keep for the PSE (the first 2 are dropped).
+      function keptReversals(s) {
+        return s.reversalDelays.slice(REVERSALS_TO_DISCARD);
+      }
+
+      // PSE for one condition: pooled kept reversals of both staircases.
+      function conditionPSE(condition) {
+        const [early, late] = staircases[condition];
+        return mean(keptReversals(early).concat(keptReversals(late)));
+      }
+
+      // One summary line per staircase, for saving with the data.
+      function staircaseSummary() {
+        return allStaircases.map((s) => ({
+          condition: s.condition,
+          staircase: s.name,
+          start_ms: s.start,
+          trials: s.trials,
+          reversals: s.stair.reversals,
+          reversal_delays_ms: s.reversalDelays.join(" "),
+          pse_ms: mean(keptReversals(s)),
+        }));
+      }
+
+      // Progress bar: each staircase counts as finished at 12 reversals
+      // (or 35 trials); the bar shows the average over all 4 staircases.
+      function progressFraction() {
+        let total = 0;
+        for (const s of allStaircases) {
+          if (s.done) {
+            total += 1;
+          } else {
+            const byReversals = s.stair.reversals / REVERSALS_TO_STOP;
+            const byTrials = s.trials / MAX_TRIALS_PER_STAIRCASE;
+            total += Math.min(1, Math.max(byReversals, byTrials));
+          }
+        }
+        return total / allStaircases.length;
+      }
+
+      /* =================================================================
+         4. ATTENTION CHECKS
+         In each block, one question is asked after the 9th trial and one
+         after the block's last trial, about the trial just seen.
+         Questions alternate: yellow, blue, yellow, blue, ...
+         ================================================================= */
+      const ATTENTION_CHECK_TRIAL_IN_BLOCK = 9;
+
+      /* =================================================================
+         5. STIMULUS SETTINGS (all sizes are for the 960-px reference canvas)
+         ================================================================= */
+      const REF_CANVAS_WIDTH = 960; // px, canvas width on the 13-inch laptop
+      const REF_BALL_RADIUS = 26; // px (26 mm diameter at 2 px/mm)
+      const REF_SPEED = 180; // px per second (90 mm/s at 2 px/mm)
+      const CONTACT_GAP = 2; // px left between the balls at contact
+      const POST_EFFECT_HOLD_MS = 1400; // scene stays up after the change
+
+      const BLUE = "#7a9ec9";
+      const YELLOW = "#e8b860";
+      const BACKGROUND = "#fafafa";
+
+      // Screen pixel density (2 on most Retina screens). The canvas is
+      // given DPR times more pixels than its on-screen size so drawings
+      // stay sharp instead of blurry.
+      const DPR = window.devicePixelRatio || 1;
+
+      // Works out where everything goes on a canvas of the given size (in
+      // CSS pixels). direction "LR": BLUE starts on the left; "RL": right.
+      function computeLayout(width, height, direction) {
+        const scale = width / REF_CANVAS_WIDTH;
+        const radius = REF_BALL_RADIUS * scale;
+        const leftX = width * 0.12;
+        const rightX = width * 0.88;
+
+        const yellowX = direction === "LR" ? rightX : leftX;
+        const blueStartX = direction === "LR" ? leftX : rightX;
+
+        // BLUE stops just touching YELLOW.
+        const contactDistance = 2 * radius + CONTACT_GAP * scale;
+        const blueStopX =
+          direction === "LR"
+            ? yellowX - contactDistance
+            : yellowX + contactDistance;
+
+        // Speed scales with the canvas just like distance does, so the
+        // travel time is the same on every screen.
+        const speed = REF_SPEED * scale;
+        const travelMs = (Math.abs(blueStopX - blueStartX) / speed) * 1000;
+
+        return {
+          width: width,
+          height: height,
+          centerY: height / 2,
+          radius: radius,
+          yellowX: yellowX,
+          blueStartX: blueStartX,
+          blueStopX: blueStopX,
+          travelMs: travelMs,
+        };
+      }
+
+      /* =================================================================
+         6. DRAWING
+         The ball and face drawings were designed for a 26-px ball.
+         drawAtBallSize() draws them at that reference size and lets the
+         canvas zoom the whole drawing (shapes, offsets and line widths)
+         to the real ball size. This keeps every ball an exact scaled copy
+         of what is seen on the 13-inch laptop.
+         ================================================================= */
+      function drawAtBallSize(ctx, drawFunction, x, y, radius, ...extraArgs) {
+        const zoom = radius / REF_BALL_RADIUS;
+        ctx.save();
+        ctx.translate(x, y);
+        ctx.scale(zoom, zoom);
+        ctx.translate(-x, -y);
+        drawFunction(ctx, x, y, REF_BALL_RADIUS, ...extraArgs);
+        ctx.restore();
+      }
+
+      function fillCircle(ctx, x, y, r, color) {
+        ctx.beginPath();
+        ctx.arc(x, y, r, 0, Math.PI * 2);
+        ctx.fillStyle = color;
+        ctx.fill();
+      }
+
+      function strokeCircle(ctx, x, y, r, color, lineWidth) {
+        ctx.beginPath();
+        ctx.arc(x, y, r, 0, Math.PI * 2);
+        ctx.strokeStyle = color;
+        ctx.lineWidth = lineWidth;
+        ctx.stroke();
+      }
+
+      function strokeLine(ctx, x1, y1, x2, y2, color, lineWidth) {
+        ctx.beginPath();
+        ctx.moveTo(x1, y1);
+        ctx.lineTo(x2, y2);
+        ctx.strokeStyle = color;
+        ctx.lineWidth = lineWidth;
+        ctx.lineCap = "round";
+        ctx.stroke();
+      }
+
+      // Limits all following drawing to inside the ball (until ctx.restore()).
+      function clipToBall(ctx, x, y, r) {
+        ctx.beginPath();
+        ctx.arc(x, y, r - 0.5, 0, Math.PI * 2);
+        ctx.clip();
+      }
+
+      function drawBall(ctx, x, y, r, color) {
+        fillCircle(ctx, x, y, r, color);
+        strokeCircle(ctx, x, y, r, color, 1.5);
+      }
+
+      // Upright face that looks to the LEFT (it is mirrored in drawScene
+      // when BLUE comes from the right, so it always looks toward BLUE).
+      // Before the change: flat eyebrows and a flat mouth (neutral).
+      // After the change: slanted eyebrows and a frown (angry).
+      function drawIntactFace(ctx, x, y, r, isAngry) {
+        const eyeR = r * 0.22;
+        const eyeY = y - r * 0.22;
+        const eyeOffsetX = r * 0.34;
+
+        ctx.save();
+        clipToBall(ctx, x, y, r);
+
+        // Eyebrows (angry: outer ends high, inner ends low)
+        const browOuterY = eyeY - eyeR * 1.55;
+        const browInnerY = isAngry ? eyeY - eyeR * 0.9 : browOuterY;
+        const browWidth = r * 0.085;
+        const leftEyeX = x - eyeOffsetX;
+        const rightEyeX = x + eyeOffsetX;
+        strokeLine(ctx, leftEyeX - eyeR, browOuterY, leftEyeX + eyeR, browInnerY, "#2a1e0a", browWidth);
+        strokeLine(ctx, rightEyeX - eyeR, browInnerY, rightEyeX + eyeR, browOuterY, "#2a1e0a", browWidth);
+
+        // Eyes: white, outline, pupil shifted left, small highlight
+        const pupilR = eyeR * 0.46;
+        const pupilShift = -eyeR * 0.34; // looking left
+        for (const eyeX of [leftEyeX, rightEyeX]) {
+          fillCircle(ctx, eyeX, eyeY, eyeR, "#fff");
+          strokeCircle(ctx, eyeX, eyeY, eyeR, "#444", 1.0);
+          fillCircle(ctx, eyeX + pupilShift - 0.8, eyeY, pupilR, "#1a0e00");
+          fillCircle(
+            ctx,
+            eyeX + pupilShift - pupilR * 0.28,
+            eyeY - pupilR * 0.28,
+            pupilR * 0.22,
+            "rgba(255,255,255,0.85)",
+          );
+        }
+
+        // Nose (small "v")
+        const noseTopY = eyeY + r * 0.3;
+        ctx.beginPath();
+        ctx.moveTo(x - r * 0.08, noseTopY);
+        ctx.lineTo(x, noseTopY + r * 0.14);
+        ctx.lineTo(x + r * 0.08, noseTopY);
+        ctx.strokeStyle = "#2a1e0a";
+        ctx.lineWidth = 1.4;
+        ctx.lineCap = "round";
+        ctx.stroke();
+
+        // Mouth (neutral: straight line; angry: frown arc)
+        if (isAngry) {
+          ctx.beginPath();
+          ctx.arc(x, y + r * 0.82, r * 0.3, Math.PI * 1.1, Math.PI * 1.9);
+          ctx.strokeStyle = "#2a1e0a";
+          ctx.lineWidth = 1.7;
+          ctx.stroke();
+        } else {
+          const mouthY = y + r * 0.5;
+          strokeLine(ctx, x - r * 0.28, mouthY, x + r * 0.28, mouthY, "#444", 1.6);
+        }
+
+        ctx.restore();
+      }
+
+      /* ---------- Scrambled face (physical condition) ----------
+         Three versions, A, B and C. Each lists where every face part
+         sits, in px from the ball's center on the 26-px reference ball,
+         BEFORE the 90-degree rotation (see drawScene).
+         "before" = parts that never change, plus flat brows and mouth.
+         "after"  = where the slanted brows and the frown arc go after
+                    the change.
+         Any part can also have "deg": it is turned around its own x / y
+         point by that many degrees, clockwise (no "deg" means 0).
+         (A, B and the old C were "Choice 2", "Choice 3" and "Choice 4"
+         from v7_angry_lines.html; C is a re-tuned version of that old C.) */
+      const SCRAMBLED_VERSIONS = {
+        A: {
+          before: {
+            browLeft: { x: 13, y: 0 },
+            browRight: { x: -13, y: 0 },
+            mouth: { x: 0, y: 0 },
+            pupilUpper: { x: -22, y: 0 },
+            pupilLower: { x: 22, y: 0 },
+            scleraUpper: { x: 0, y: -18 },
+            scleraLower: { x: 0, y: 18 },
+            noseLeftLeg: { x: -9, y: 17 },
+            noseRightLeg: { x: 9, y: -17 },
+          },
+          after: {
+            browLeft: { x: 13, y: 0 },
+            browRight: { x: -13, y: 0 },
+            mouth: { x: 0, y: 0 },
+          },
+        },
+        B: {
+          before: {
+            browLeft: { x: 14, y: -10 },
+            browRight: { x: -13, y: 11 },
+            mouth: { x: 0, y: 0 },
+            pupilUpper: { x: 15, y: -12, deg: 180 },
+            pupilLower: { x: -13, y: 12, deg: 180 },
+            scleraUpper: { x: 12, y: 12 },
+            scleraLower: { x: -10, y: -12.5 },
+            noseLeftLeg: { x: 21, y: 10 },
+            noseRightLeg: { x: -19, y: -10 },
+          },
+          after: {
+            browLeft: { x: 14, y: -10 },
+            browRight: { x: -13, y: 11 },
+            mouth: { x: 0, y: 2.5 },
+          },
+        },
+        // C: a re-tuned layout that replaces the old version C.
+        C: {
+          before: {
+            browLeft: { x: 10, y: 12 },
+            browRight: { x: -10, y: -12 },
+            mouth: { x: 0, y: 0 },
+            pupilUpper: { x: 18, y: 12 },
+            pupilLower: { x: -17, y: -12 },
+            scleraUpper: { x: 12, y: -12, deg: 270 },
+            scleraLower: { x: -10, y: 12, deg: 270 },
+            noseLeftLeg: { x: 21, y: -10 },
+            noseRightLeg: { x: -19, y: 10 },
+          },
+          after: {
+            browLeft: { x: 10, y: 12 },
+            browRight: { x: -10, y: -12 },
+            mouth: { x: 0, y: 2.5 },
+          },
+        },
+      };
+
+      // Which scrambled version this participant sees in the physical
+      // blocks. Assigned automatically (section 19).
+      let scrambledVersion = "A";
+      let versionSource = "not_assigned"; // "server", "random_fallback" or "manual_button"
+      let participantNumber = ""; // order number from the server
+
+      // Draws one face part: moves to the part's x / y point (measured
+      // from the ball's center x, y), turns by the part's "deg", then
+      // calls drawFunction, which draws the part around (0, 0).
+      function drawPart(ctx, x, y, part, drawFunction) {
+        ctx.save();
+        ctx.translate(x + part.x, y + part.y);
+        ctx.rotate(((part.deg || 0) * Math.PI) / 180);
+        drawFunction();
+        ctx.restore();
+      }
+
+      // Scrambled face parts that never change: two "eyes" (white circle
+      // with a yellow dot), two dark pupils and two short nose lines.
+      // p = the "before" positions of the chosen version.
+      // lowerEyeSide: +1 (usual) puts the lower eye's dots toward +x;
+      // -1 makes it look like the upper eye (dots toward -x), as used by
+      // version D so both eyes match the intact face.
+      function drawScrambledFace(ctx, x, y, r, p, lowerEyeSide = 1) {
+        const eyeR = r * 0.22;
+        const pupilR = eyeR * 0.48;
+        const innerShift = eyeR - pupilR; // yellow dot inside the white eye
+        const dotShift = r * 0.55 + 3 - r * 0.48; // yellow dot beside it
+
+        ctx.save();
+        clipToBall(ctx, x, y, r);
+
+        // Lower eye (its dots sit toward +x, or toward -x if lowerEyeSide is -1)
+        if (lowerEyeSide === 1) {
+          drawPart(ctx, x, y, p.scleraLower, () => {
+            fillCircle(ctx, 0, 0, eyeR, "#fff");
+            fillCircle(ctx, innerShift, 0, pupilR, YELLOW);
+            strokeCircle(ctx, 0, 0, eyeR, "#444", 1.0);
+            strokeCircle(ctx, innerShift, 0, pupilR, "#444", 1.0);
+            fillCircle(ctx, dotShift, 0, pupilR, YELLOW);
+            fillCircle(ctx, dotShift - pupilR * 0.28 - 3, -pupilR * 0.28, pupilR * 0.22, YELLOW);
+          });
+        } else {
+          drawPart(ctx, x, y, p.scleraLower, () => {
+            fillCircle(ctx, 0, 0, eyeR, "#fff");
+            fillCircle(ctx, -innerShift, 0, pupilR, YELLOW);
+            strokeCircle(ctx, 0, 0, eyeR, "#444", 1.0);
+            strokeCircle(ctx, -innerShift, 0, pupilR, "#444", 1.0);
+            fillCircle(ctx, -dotShift, 0, pupilR, YELLOW);
+            fillCircle(ctx, -dotShift - pupilR * 0.28 + 3, -pupilR * 0.28, pupilR * 0.22, YELLOW);
+          });
+        }
+
+        // Upper eye (its dots sit toward -x)
+        drawPart(ctx, x, y, p.scleraUpper, () => {
+          fillCircle(ctx, 0, 0, eyeR, "#fff");
+          fillCircle(ctx, -innerShift, 0, pupilR, YELLOW);
+          strokeCircle(ctx, 0, 0, eyeR, "#444", 1.0);
+          strokeCircle(ctx, -innerShift, 0, pupilR, "#444", 1.0);
+          fillCircle(ctx, -dotShift, 0, pupilR, YELLOW);
+          fillCircle(ctx, -dotShift - pupilR * 0.28 + 3, -pupilR * 0.28, pupilR * 0.22, YELLOW);
+        });
+
+        // Two dark pupils with highlights
+        for (const pupil of [p.pupilLower, p.pupilUpper]) {
+          drawPart(ctx, x, y, pupil, () => {
+            fillCircle(ctx, 0, 0, pupilR, "#222");
+            fillCircle(ctx, -pupilR * 0.28, -pupilR * 0.28, pupilR * 0.22, "rgba(255,255,255,0.85)");
+          });
+        }
+
+        // Two short nose lines, each centered on its position
+        const halfDX = (r * 0.08) / 2;
+        const halfDY = (r * 0.14) / 2;
+        drawPart(ctx, x, y, p.noseLeftLeg, () => {
+          strokeLine(ctx, -halfDX, -halfDY, halfDX, halfDY, "#444", 1.4);
+        });
+        drawPart(ctx, x, y, p.noseRightLeg, () => {
+          strokeLine(ctx, halfDX, -halfDY, -halfDX, halfDY, "#444", 1.4);
+        });
+
+        ctx.restore();
+      }
+
+      // Scrambled face parts that DO change: eyebrows and mouth.
+      // Before: flat eyebrows and a flat mouth line.
+      // After: slanted eyebrows and a frown arc (same shapes as the
+      // angry intact face). v = the chosen version (before + after).
+      function drawScrambledBrowsAndMouth(ctx, x, y, r, v, hasChanged) {
+        const browHalf = r * 0.22;
+        const browWidth = r * 0.085;
+
+        ctx.save();
+        clipToBall(ctx, x, y, r);
+
+        if (!hasChanged) {
+          for (const brow of [v.before.browLeft, v.before.browRight]) {
+            drawPart(ctx, x, y, brow, () => {
+              strokeLine(ctx, -browHalf, 0, browHalf, 0, "#2a1e0a", browWidth);
+            });
+          }
+          drawPart(ctx, x, y, v.before.mouth, () => {
+            strokeLine(ctx, -r * 0.28, 0, r * 0.28, 0, "#444", 1.6);
+          });
+        } else {
+          const slant = r * 0.22 * 0.325;
+          drawPart(ctx, x, y, v.after.browLeft, () => {
+            strokeLine(ctx, -browHalf, -slant, browHalf, slant, "#2a1e0a", browWidth);
+          });
+          drawPart(ctx, x, y, v.after.browRight, () => {
+            strokeLine(ctx, -browHalf, slant, browHalf, -slant, "#2a1e0a", browWidth);
+          });
+          // Frown arc; its x / y point is the center of the arc's circle.
+          drawPart(ctx, x, y, v.after.mouth, () => {
+            ctx.beginPath();
+            ctx.arc(0, 0, r * 0.3, Math.PI * 1.1, Math.PI * 1.9);
+            ctx.strokeStyle = "#444";
+            ctx.lineWidth = 1.7;
+            ctx.lineCap = "round";
+            ctx.stroke();
+          });
+        }
+
+        ctx.restore();
+      }
+
+      /* ---------- Scrambled version D: randomly placed face parts ----------
+         Every trial, the 9 parts of the scrambled face (2 eyebrows, the
+         mouth, 2 pupils, 2 eye whites, 2 nose lines) get a new random
+         position and a new random angle (0-360 degrees, turned around the
+         part's own center), so each trial shows a new scrambled face.
+         Before turning, each part has the orientation it has on the
+         intact face. Rules:
+           - every part lies fully inside the ball (nothing is cut off)
+           - no two parts overlap
+         At the change, the eyebrows slant and the mouth becomes a frown
+         arc at their own spots and angles, as in versions A, B and C
+         (the arc sits 2.5 px "below" the line, as in B and C; this
+         offset turns along with the mouth).
+
+         For placing, each part counts as a circle around its own center
+         with the radius below (px on the 26-px reference ball), big
+         enough to hold both its "before" and "after" shape. Turning a
+         part around its center keeps it inside its circle, so the
+         rotation can never make two parts overlap. */
+      const D_PART_RADIUS = {
+        browLeft: 7.2,
+        browRight: 7.2,
+        mouth: 8.3, // holds both the line and the frown arc
+        scleraUpper: 7.6, // eye white plus its yellow dot
+        scleraLower: 7.6,
+        pupilUpper: 2.8,
+        pupilLower: 2.8,
+        noseLeftLeg: 2.8,
+        noseRightLeg: 2.8,
+      };
+      const D_EDGE_MARGIN = 1; // px kept free inside the ball's outline
+      const D_GAP = 1; // px kept free between any two parts
+      const D_MOUTH_ARC_SHIFT = 2.5; // frown arc sits this much lower than the line
+
+      // Returns a random layout in the same format as SCRAMBLED_VERSIONS:
+      // { before: { ...9 parts }, after: { browLeft, browRight, mouth } }.
+      function makeRandomLayout() {
+        // Place the biggest parts first: they are the hardest to fit.
+        const names = Object.keys(D_PART_RADIUS).sort(
+          (a, b) => D_PART_RADIUS[b] - D_PART_RADIUS[a],
+        );
+        // If the parts placed so far leave no room for the next one,
+        // start the whole layout again (rarely needs more than a few tries).
+        for (let attempt = 0; attempt < 1000; attempt++) {
+          const placed = {};
+          let allFit = true;
+          for (const name of names) {
+            const spot = findFreeSpot(name, placed);
+            if (spot === null) {
+              allFit = false;
+              break;
+            }
+            placed[name] = spot;
+          }
+          if (allFit) {
+            // Give every part a random rotation.
+            for (const name of names) {
+              placed[name].deg = Math.random() * 360;
+            }
+
+            // The frown arc sits D_MOUTH_ARC_SHIFT px "below" the mouth
+            // line in the mouth's own (turned) direction, and has the
+            // same rotation as the line.
+            const m = placed.mouth;
+            const angle = (m.deg * Math.PI) / 180;
+            const arcMouth = {
+              x: m.x - D_MOUTH_ARC_SHIFT * Math.sin(angle),
+              y: m.y + D_MOUTH_ARC_SHIFT * Math.cos(angle),
+              deg: m.deg,
+            };
+            return {
+              before: placed,
+              after: {
+                browLeft: placed.browLeft,
+                browRight: placed.browRight,
+                mouth: arcMouth,
+              },
+            };
+          }
+        }
+        // Practically never happens; fall back to a fixed version.
+        console.warn("Version D: no random layout found; using version A.");
+        return SCRAMBLED_VERSIONS.A;
+      }
+
+      // Tries random spots for one part until one fits inside the ball
+      // without touching the parts already placed. Returns null if none
+      // of 200 tries fits.
+      function findFreeSpot(name, placed) {
+        const partRadius = D_PART_RADIUS[name];
+        // Farthest the part's center may be from the ball's center.
+        const maxDistance = REF_BALL_RADIUS - D_EDGE_MARGIN - partRadius;
+        for (let t = 0; t < 200; t++) {
+          // Random point in a square, kept only if it is inside the circle
+          // (this makes every spot in the circle equally likely).
+          const x = (Math.random() * 2 - 1) * maxDistance;
+          const y = (Math.random() * 2 - 1) * maxDistance;
+          if (Math.sqrt(x * x + y * y) > maxDistance) continue;
+
+          let overlaps = false;
+          for (const other in placed) {
+            const dx = x - placed[other].x;
+            const dy = y - placed[other].y;
+            const minDistance = partRadius + D_PART_RADIUS[other] + D_GAP;
+            if (Math.sqrt(dx * dx + dy * dy) < minDistance) overlaps = true;
+          }
+          if (!overlaps) return { x: x, y: y };
+        }
+        return null;
+      }
+
+      // Draws the yellow ball with its face (no background, no BLUE).
+      // Used both in trials and for the instruction pictures.
+      // randomLayout is only used by scrambled version D (see above).
+      function drawYellow(ctx, x, y, r, condition, direction, hasChanged, randomLayout) {
+        if (condition === "intact") {
+          drawAtBallSize(ctx, drawBall, x, y, r, YELLOW);
+          ctx.save();
+          if (direction === "RL") {
+            // Mirror the face so it looks right, toward BLUE.
+            ctx.translate(x, 0);
+            ctx.scale(-1, 1);
+            ctx.translate(-x, 0);
+          }
+          drawAtBallSize(ctx, drawIntactFace, x, y, r, hasChanged);
+          ctx.restore();
+        } else if (scrambledVersion === "D") {
+          // Version D: this trial's random layout. Parts start from their
+          // intact-face orientation (no 90-degree turn of the ball, both
+          // eyes with their dots toward -x, where the intact pupil sits),
+          // each turned by its own random angle, and the whole face is
+          // mirrored on RL trials, exactly like the intact face.
+          const version = randomLayout || makeRandomLayout();
+          drawAtBallSize(ctx, drawBall, x, y, r, YELLOW);
+          ctx.save();
+          if (direction === "RL") {
+            ctx.translate(x, 0);
+            ctx.scale(-1, 1);
+            ctx.translate(-x, 0);
+          }
+          drawAtBallSize(ctx, drawScrambledFace, x, y, r, version.before, -1);
+          drawAtBallSize(ctx, drawScrambledBrowsAndMouth, x, y, r, version, hasChanged);
+          ctx.restore();
+        } else {
+          // Versions A, B and C: their fixed layout.
+          const version = SCRAMBLED_VERSIONS[scrambledVersion];
+
+          ctx.save();
+          // On RL trials (BLUE comes from the right), flip the whole ball
+          // left-right, so the RL movie is an exact mirror of the LR movie.
+          if (direction === "RL") {
+            ctx.translate(x, 0);
+            ctx.scale(-1, 1);
+            ctx.translate(-x, 0);
+          }
+          // The whole scrambled ball is rotated 90 degrees clockwise
+          // (before the flip above, so the flip mirrors the rotated ball).
+          ctx.translate(x, y);
+          ctx.rotate(Math.PI / 2);
+          ctx.translate(-x, -y);
+          drawAtBallSize(ctx, drawBall, x, y, r, YELLOW);
+          drawAtBallSize(ctx, drawScrambledFace, x, y, r, version.before);
+          drawAtBallSize(ctx, drawScrambledBrowsAndMouth, x, y, r, version, hasChanged);
+          ctx.restore();
+        }
+      }
+
+      // Draws one full frame of a trial.
+      // randomLayout is only used by scrambled version D.
+      function drawScene(ctx, layout, trial, blueX, hasChanged, randomLayout) {
+        ctx.fillStyle = BACKGROUND;
+        ctx.fillRect(0, 0, layout.width, layout.height);
+        drawYellow(
+          ctx,
+          layout.yellowX,
+          layout.centerY,
+          layout.radius,
+          trial.condition,
+          trial.direction,
+          hasChanged,
+          randomLayout,
+        );
+        drawAtBallSize(ctx, drawBall, blueX, layout.centerY, layout.radius, BLUE);
+      }
+
+      /* =================================================================
+         7. TRIAL ANIMATION
+         Timing uses the real clock (performance.now()), not frame counts,
+         so it is the same on 60 Hz, 120 Hz, etc. screens. On each screen
+         refresh we ask "how many ms since the trial started?" and draw
+         the matching frame.
+         ================================================================= */
+      const expCanvas = el("expCanvas");
+      let anim = null; // settings and state of the current trial's animation
+
+      function stopAnimation() {
+        if (anim && anim.frameId !== null) cancelAnimationFrame(anim.frameId);
+      }
+
+      // Sizes the canvas, computes the timing and draws the first frame.
+      function prepareTrial(trial) {
+        stopAnimation();
+
+        const width = expCanvas.clientWidth || REF_CANVAS_WIDTH;
+        const height = expCanvas.clientHeight || Math.round(width / 3);
+        expCanvas.width = Math.round(width * DPR);
+        expCanvas.height = Math.round(height * DPR);
+        const ctx = expCanvas.getContext("2d");
+        ctx.setTransform(DPR, 0, 0, DPR, 0, 0); // draw in CSS pixels
+
+        const layout = computeLayout(width, height, trial.direction);
+        // Moment of the face change, measured from the start of the trial.
+        // Never earlier than the start itself.
+        const changeMs = Math.max(0, layout.travelMs + trial.delay);
+
+        // Version D: a new random layout of the face parts for this trial.
+        let randomLayout = null;
+        if (trial.condition === "scrambled" && scrambledVersion === "D") {
+          randomLayout = makeRandomLayout();
+        }
+
+        anim = {
+          ctx: ctx,
+          layout: layout,
+          trial: trial,
+          changeMs: changeMs,
+          endMs: changeMs + POST_EFFECT_HOLD_MS,
+          startTime: null,
+          frameId: null,
+          onFinished: null,
+          randomLayout: randomLayout,
+        };
+        drawScene(ctx, layout, trial, layout.blueStartX, false, randomLayout);
+      }
+
+      // Starts the animation; onFinished() is called when it is over.
+      function playTrial(onFinished) {
+        anim.onFinished = onFinished;
+        anim.startTime = performance.now();
+        anim.frameId = requestAnimationFrame(animationStep);
+      }
+
+      function animationStep() {
+        const layout = anim.layout;
+        const elapsed = performance.now() - anim.startTime;
+
+        const fractionTravelled =
+          layout.travelMs > 0 ? Math.min(1, elapsed / layout.travelMs) : 1;
+        const blueX =
+          layout.blueStartX +
+          fractionTravelled * (layout.blueStopX - layout.blueStartX);
+        const hasChanged = elapsed >= anim.changeMs;
+
+        drawScene(anim.ctx, layout, anim.trial, blueX, hasChanged, anim.randomLayout);
+
+        if (elapsed >= anim.endMs) {
+          anim.frameId = null;
+          const callback = anim.onFinished;
+          anim.onFinished = null;
+          if (callback) callback();
+          return;
+        }
+        anim.frameId = requestAnimationFrame(animationStep);
+      }
+
+      /* =================================================================
+         8. EXPERIMENT STATE
+         phase is one of: "idle", "waitingKeypress", "playing",
+         "awaitingResponse", "attentionCheck"
+         ================================================================= */
+      let phase = "idle";
+      let activeTrial = null;
+      let trialLog = [];
+      let attnCheckLog = [];
+
+      // Reaction times: trial RT runs from the end of the movie to the
+      // Q/P key press;
+      // attention-check RT from the question appearing to Submit.
+      let responseWindowStartTs = null;
+      // Response duration: how long the answer key was held down.
+      // Set when the answer key goes down; finished when it comes up.
+      let heldKey = null; // "q" or "p" while held
+      let heldKeyDownTs = null; // time the key went down
+      let heldKeyTrial = null; // the trialLog entry for that answer
+      let heldKeyCheckNext = false; // attention check due after this trial?
+      let acQuestionStartTs = null;
+
+      // Session timing. Starts when the page loads (consent page).
+      const experimentStartTime = performance.now();
+      let totalBreakMs = 0;
+      let breakStartTs = null;
+      let totalCompletionMs = null;
+      let filteredCompletionMs = null; // total minus breaks
+
+      // Overlay flags
+      let onBreak = false;
+      let onExitConfirm = false;
+      let onFullscreenReminder = false;
+      let fullscreenRequired = false;
+
+      // Answers from the end-of-study pages
+      let q1Answer = "";
+      let q2Answer = "";
+      let raceAnswer = "";
+      let ethnicityAnswer = "";
+      let genderAnswer = "";
+      let ageAnswer = "";
+
+      const keypressInstruction = el("keypressInstruction");
+      const responseArea = el("responseArea");
+      const responseKeys = el("responseKeys");
+      const beforeKey = el("beforeKey");
+      const afterKey = el("afterKey");
+      const feedbackArea = el("feedbackArea");
+      const acQuestionText = el("acQuestionText");
+      const acLeftBtn = el("acLeftBtn");
+      const acRightBtn = el("acRightBtn");
+      const acSubmitBtn = el("acSubmitBtn");
+
+      /* =================================================================
+         9. PAGES AND INSTRUCTION IMAGES
+         ================================================================= */
+      // The trial panel is centered vertically while it is on screen.
+      function showMainTrialPanel() {
+        show("mainTrialPanel", "flex");
+        document.body.classList.add("trial-active");
+      }
+      function hideMainTrialPanel() {
+        hide("mainTrialPanel");
+        document.body.classList.remove("trial-active");
+      }
+
+      // Pictures of BLUE, YELLOW and the first movie frame are drawn by
+      // the script with the same code as the trials (not stored images),
+      // so they always match what participants see, including the chosen
+      // scrambled version A/B/C/D.
+
+      // Draws on a hidden canvas (at 2x for sharpness) and returns the
+      // result as an image that an <img> can show.
+      function makePicture(width, height, drawFunction) {
+        const canvas = document.createElement("canvas");
+        canvas.width = width * 2;
+        canvas.height = height * 2;
+        const ctx = canvas.getContext("2d");
+        ctx.scale(2, 2);
+        drawFunction(ctx);
+        return canvas.toDataURL("image/png");
+      }
+
+      // Close-up of BLUE, on a white background (same as the page).
+      function blueCloseUp() {
+        return makePicture(60, 60, (ctx) => {
+          ctx.fillStyle = "#fff";
+          ctx.fillRect(0, 0, 60, 60);
+          drawAtBallSize(ctx, drawBall, 30, 30, 28, BLUE);
+        });
+      }
+
+      // Close-up of YELLOW (condition: "intact" or "scrambled"), on a
+      // white background (same as the page).
+      function yellowCloseUp(condition) {
+        return makePicture(60, 60, (ctx) => {
+          ctx.fillStyle = "#fff";
+          ctx.fillRect(0, 0, 60, 60);
+          drawYellow(ctx, 30, 30, 28, condition, "LR", false, null); // D makes its own layout
+        });
+      }
+
+      // First frame of a trial (condition: "intact" or "scrambled"),
+      // with a thin frame around it.
+      function firstFrame(condition) {
+        const margin = 12;
+        const layout = computeLayout(REF_CANVAS_WIDTH, 320, "LR");
+        const trial = { condition: condition, direction: "LR" };
+        return makePicture(
+          REF_CANVAS_WIDTH + 2 * margin,
+          320 + 2 * margin,
+          (ctx) => {
+            ctx.fillStyle = "#fff";
+            ctx.fillRect(0, 0, REF_CANVAS_WIDTH + 2 * margin, 320 + 2 * margin);
+            ctx.translate(margin, margin);
+            drawScene(ctx, layout, trial, layout.blueStartX, false, null); // D makes its own layout
+            ctx.strokeStyle = "#000";
+            ctx.lineWidth = 1.5;
+            ctx.strokeRect(0, 0, REF_CANVAS_WIDTH, 320);
+          },
+        );
+      }
+
+      // Fills the pictures on one instruction page.
+      // page is "block1" (first page) or "blockBreak" (blocks 2-4).
+      function fillInstructionPictures(page, condition) {
+        el(page + "BlueImg").src = blueCloseUp();
+        el(page + "YellowImg").src = yellowCloseUp(condition);
+        // Only the first page (block1) shows an example movie frame.
+        if (page === "block1") {
+          el("block1SceneImg").src = firstFrame(condition);
+        }
+      }
+
+      let breakCondition = null; // condition on the latest break screen
+
+      // Break screen shown before blocks 2, 3 and 4.
+      function showBlockBreak(blockNumber, onContinue) {
+        const condition = blockOrder[blockNumber - 1];
+
+        el("blockBreakGreeting").innerHTML =
+          `Great work! The ` +
+          `next part of the study involves the same movie watching task. ` +
+          `But now, <b style="color: #7a9ec9">BLUE</b> and ` +
+          `<b style="color: #e8b860">YELLOW</b> will look like this:`;
+        el("blockBreakRateText").textContent =
+          "Everything else will be the same. On each trial, you’ll watch a " +
+          "movie and answer this question using the Q and P keys on your " +
+          'keyboard: Q for "Before", or P for "After".';
+        breakCondition = condition;
+        fillInstructionPictures("blockBreak", condition);
+
+        hideMainTrialPanel();
+        show("blockBreakPanel");
+        el("blockBreakContinueBtn").onclick = () => {
+          el("blockBreakContinueBtn").onclick = null;
+          hide("blockBreakPanel");
+          showMainTrialPanel();
+          onContinue();
+        };
+      }
+
+      /* =================================================================
+         10. RESPONSE KEYS
+         Q = "before", P = "after".
+         The key boxes are dimmed while the movie plays and become
+         active once it ends (the key presses themselves are handled in
+         section 13).
+         ================================================================= */
+      // Dim both keys and clear any highlight (start of each trial).
+      function resetResponseKeys() {
+        responseKeys.classList.add("waiting");
+        beforeKey.classList.remove("pressed");
+        afterKey.classList.remove("pressed");
+      }
+
+      // The movie is over: the participant may now answer.
+      function enableResponseKeys() {
+        responseKeys.classList.remove("waiting");
+      }
+
+      /* =================================================================
+         11. TRIAL FLOW
+         ================================================================= */
+      function nextTrial() {
+        // If this block has no trials left, move on to the next block
+        // (skipping any block whose staircases have already finished).
+        while (availableStaircases(currentBlock).length === 0) {
+          currentBlock++;
+          trialsInBlock = 0;
+          if (currentBlock > TOTAL_BLOCKS) {
+            finishExperiment();
+            return;
+          }
+          if (availableStaircases(currentBlock).length > 0) {
+            showBlockBreak(currentBlock, nextTrial);
+            return;
+          }
+        }
+
+        // Pick one of this block's staircases at random.
+        const options = availableStaircases(currentBlock);
+        const s = options[Math.floor(Math.random() * options.length)];
+
+        activeTrial = {
+          block: currentBlock,
+          condition: s.condition,
+          staircase: s,
+          delay: s.stair.currentStep, // offset in ms
+          direction: Math.random() < 0.5 ? "LR" : "RL", // BLUE's start side
+        };
+        el("progressBar").style.width = progressFraction() * 100 + "%";
+
+        feedbackArea.style.visibility = "hidden";
+        responseArea.style.display = "block";
+        resetResponseKeys();
+        keypressInstruction.style.visibility = "visible";
+
+        prepareTrial(activeTrial);
+        phase = "waitingKeypress"; // the movie starts on SPACE
+      }
+
+      // response is "before" or "after"; key is "Q" or "P" (saved in the
+      // data); code is "q" or "p" (used to time the key's release).
+      function handleResponse(response, key, code) {
+        phase = "idle"; // further key presses are ignored until the next trial
+
+        // Highlight the chosen key so the participant sees their answer.
+        if (response === "before") beforeKey.classList.add("pressed");
+        else afterKey.classList.add("pressed");
+
+        const trial = activeTrial;
+        const reactionTimeMs =
+          responseWindowStartTs !== null
+            ? Math.round(performance.now() - responseWindowStartTs)
+            : null;
+        responseWindowStartTs = null;
+
+        // Move the staircase according to the answer.
+        const s = trial.staircase;
+        const update = updateStaircase(s, trial.delay, response);
+
+        trialLog.push({
+          trial: trialLog.length + 1,
+          block: trial.block,
+          condition: trial.condition,
+          scrambled_version:
+            trial.condition === "scrambled" ? scrambledVersion : "",
+          staircase: s.name,
+          direction: trial.direction,
+          delay_ms: trial.delay,
+          response: response,
+          response_key: key,
+          step_ms: update.stepUsed,
+          reversal: update.isReversal ? 1 : 0,
+          reversals_so_far: s.stair.reversals,
+          reaction_time_ms: reactionTimeMs,
+          response_duration_ms: null, // filled in when the key is released
+        });
+        trialsInBlock++;
+
+        // Start timing how long the answer key is held down.
+        heldKey = code;
+        heldKeyDownTs = performance.now();
+        heldKeyTrial = trialLog[trialLog.length - 1];
+
+        // For piloting: follow the staircases in the browser console.
+        console.log(
+          `Trial ${trialLog.length}: ${s.condition}/${s.name}, ` +
+            `offset ${trial.delay} ms, answer "${response}", ` +
+            `reversals ${s.stair.reversals}, next offset ${s.stair.currentStep} ms`,
+        );
+
+        // Save after every trial, so partial data survives a crash or
+        // a closed tab.
+        postDataToServer();
+
+        // Attention check after the 9th trial of a block and after the
+        // block's last trial.
+        const blockIsOver = availableStaircases(trial.block).length === 0;
+        const checkNow =
+          trialsInBlock === ATTENTION_CHECK_TRIAL_IN_BLOCK || blockIsOver;
+
+        // Wait for the answer key to be RELEASED before moving on, so the
+        // response duration is never cut short (see finishAnswer below).
+        heldKeyCheckNext = checkNow;
+      }
+
+      // Called once the answer key is released (or the page loses focus
+      // while it is held). Saves the response duration, then after a
+      // short pause (600 ms) shows an attention check or the next trial.
+      function finishAnswer(durationMs) {
+        const trial = activeTrial;
+        const checkNow = heldKeyCheckNext;
+        heldKeyTrial.response_duration_ms = durationMs;
+        heldKey = null;
+        heldKeyDownTs = null;
+        heldKeyTrial = null;
+        heldKeyCheckNext = false;
+        postDataToServer(); // save again so the duration is included
+        feedbackArea.style.visibility = "visible"; // shown once the key is released
+
+        setTimeout(() => {
+          if (checkNow) {
+            runAttentionCheck(
+              trial,
+              trialLog.length,
+              nextAttentionQuestion(),
+              nextTrial,
+            );
+          } else {
+            nextTrial();
+          }
+        }, 600);
+      }
+
+      // Questions alternate: yellow, blue, yellow, blue, ...
+      function nextAttentionQuestion() {
+        return attnCheckLog.length % 2 === 0 ? "yellow_position" : "blue_position";
+      }
+
+      function finishExperiment() {
+        el("progressBar").style.width = "100%";
+        feedbackArea.style.visibility = "hidden";
+        keypressInstruction.style.visibility = "hidden";
+        responseArea.style.display = "none";
+        hideMainTrialPanel();
+        show("finalQuestionsPanel"); // no time limit on this page
+        console.log("PSE intact:", conditionPSE("intact"), "ms");
+        console.log("PSE scrambled:", conditionPSE("scrambled"), "ms");
+      }
+
+      /* =================================================================
+         12. ATTENTION CHECK
+         Asks where the yellow (or blue) ball was on the trial just seen.
+         For blue we ask about its STARTING side, because at the end it
+         sits right next to yellow.
+         ================================================================= */
+      let acSelectedSide = null;
+      let acContext = null;
+
+      function resetACButtons() {
+        acSelectedSide = null;
+        acLeftBtn.classList.remove("selected");
+        acRightBtn.classList.remove("selected");
+        acSubmitBtn.disabled = true;
+      }
+
+      function runAttentionCheck(trial, afterTrial, question, onDone) {
+        hideMainTrialPanel();
+        show("attentionCheckPanel", "flex");
+
+        const yellowSide = trial.direction === "LR" ? "right" : "left";
+        const blueSide = trial.direction === "LR" ? "left" : "right";
+        const isYellow = question === "yellow_position";
+        const colorWord = isYellow ? "yellow" : "blue";
+
+        phase = "attentionCheck";
+        acQuestionText.textContent = `On the last trial, was the ${colorWord} thing on the left or on the right?`;
+        resetACButtons();
+        acContext = {
+          question: question,
+          correctSide: isYellow ? yellowSide : blueSide,
+          block: trial.block,
+          afterTrial: afterTrial,
+          onDone: () => {
+            hide("attentionCheckPanel");
+            showMainTrialPanel();
+            onDone();
+          },
+        };
+        acQuestionStartTs = performance.now();
+      }
+
+      function selectACSide(side) {
+        if (phase !== "attentionCheck") return;
+        acSelectedSide = side;
+        acLeftBtn.classList.toggle("selected", side === "left");
+        acRightBtn.classList.toggle("selected", side === "right");
+        acSubmitBtn.disabled = false;
+      }
+      acLeftBtn.addEventListener("click", () => selectACSide("left"));
+      acRightBtn.addEventListener("click", () => selectACSide("right"));
+
+      acSubmitBtn.addEventListener("click", () => {
+        if (phase !== "attentionCheck" || acSubmitBtn.disabled || !acSelectedSide)
+          return;
+        const reactionTimeMs =
+          acQuestionStartTs !== null
+            ? Math.round(performance.now() - acQuestionStartTs)
+            : null;
+        acQuestionStartTs = null;
+
+        attnCheckLog.push({
+          check_number: attnCheckLog.length + 1,
+          block: acContext.block,
+          after_trial: acContext.afterTrial,
+          question: acContext.question,
+          participant_response: acSelectedSide,
+          correct_response: acContext.correctSide,
+          correct: acSelectedSide === acContext.correctSide ? 1 : 0,
+          reaction_time_ms: reactionTimeMs,
+        });
+
+        const onDone = acContext.onDone;
+        acContext = null;
+        resetACButtons();
+        onDone();
+      });
+
+      /* =================================================================
+         13. KEYBOARD
+         SPACE  - start the movie
+         Q / P  - answer "before" / "after" (after the movie; upper or
+                  lower case both work)
+         DELETE - take a break (Backspace also works; Macs label it "delete")
+         X      - ask to end the study early
+         (ESC is not used: browsers reserve it for leaving full screen.)
+         Breaks and ending are not allowed while a movie plays or before
+         the response is submitted.
+         ================================================================= */
+      function shortcutsAllowed() {
+        return !(
+          isShown("consentPage") ||
+          isShown("fullscreenPage") ||
+          isShown("finalQuestionsPanel") ||
+          isShown("debriefPanel") ||
+          isShown("thankYouPanel") ||
+          isShown("prolificPanel") ||
+          onExitConfirm ||
+          onFullscreenReminder
+        );
+      }
+
+      function isMidTrial() {
+        return phase === "playing" || phase === "awaitingResponse";
+      }
+
+      document.addEventListener("keydown", (e) => {
+        // X: end-study dialog
+        if (e.key === "x" || e.key === "X") {
+          if (!shortcutsAllowed()) return;
+          if (!onBreak && isMidTrial()) return;
+          e.preventDefault();
+          if (onBreak) hidePauseOverlay();
+          showExitConfirmOverlay();
+          return;
+        }
+
+        // Delete / Backspace: start or end a break
+        if (e.key === "Delete" || e.key === "Backspace") {
+          if (!shortcutsAllowed()) return;
+          e.preventDefault();
+          if (onBreak) hidePauseOverlay();
+          else if (!isMidTrial()) showPauseOverlay();
+          return;
+        }
+
+        if (onBreak || onExitConfirm || onFullscreenReminder) return;
+
+        // Q / P: answer, only once the movie has ended.
+        // The letter is made lower case, so it also works with Caps Lock
+        // or Shift on. (e.repeat is true when a key is held down; those
+        // repeats are ignored.)
+        if (phase === "awaitingResponse" && !e.repeat) {
+          const letter = e.key.toLowerCase();
+          if (letter === "q") {
+            e.preventDefault();
+            handleResponse("before", "Q", "q");
+          } else if (letter === "p") {
+            e.preventDefault();
+            handleResponse("after", "P", "p");
+          }
+          return;
+        }
+
+        // SPACE: play the movie
+        if (phase !== "waitingKeypress") return;
+        if (e.code === "Space" || e.key === " ") {
+          e.preventDefault();
+          keypressInstruction.style.visibility = "hidden";
+          phase = "playing";
+          playTrial(() => {
+            phase = "awaitingResponse";
+            enableResponseKeys();
+            responseWindowStartTs = performance.now();
+          });
+        }
+      });
+
+      // Answer key released: save how long it was held (response duration)
+      // and move on. There is no time limit on how long it can be held.
+      document.addEventListener("keyup", (e) => {
+        if (heldKey === null || e.key.toLowerCase() !== heldKey) return;
+        finishAnswer(Math.round(performance.now() - heldKeyDownTs));
+      });
+
+      // If the participant switches tabs/windows while holding the key, the
+      // browser never reports the release. Then we leave the duration
+      // blank (null) and carry on, so the experiment cannot get stuck.
+      window.addEventListener("blur", () => {
+        if (heldKey !== null) finishAnswer(null);
+      });
+
+      /* =================================================================
+         14. BREAK AND END-STUDY OVERLAYS
+         ================================================================= */
+      function showPauseOverlay() {
+        onBreak = true;
+        breakStartTs = performance.now();
+        show("pauseOverlay", "flex");
+      }
+      function hidePauseOverlay() {
+        onBreak = false;
+        if (breakStartTs !== null) {
+          totalBreakMs += performance.now() - breakStartTs;
+          breakStartTs = null;
+        }
+        hide("pauseOverlay");
+      }
+      el("resumeBtn").addEventListener("click", hidePauseOverlay);
+
+      function showExitConfirmOverlay() {
+        onExitConfirm = true;
+        show("exitConfirmOverlay", "flex");
+      }
+      function hideExitConfirmOverlay() {
+        onExitConfirm = false;
+        hide("exitConfirmOverlay");
+      }
+      el("exitCancelBtn").addEventListener("click", () => {
+        hideExitConfirmOverlay();
+        requestFS();
+      });
+      el("exitConfirmBtn").addEventListener("click", () => {
+        hideExitConfirmOverlay();
+        finishExperiment();
+      });
+
+      /* =================================================================
+         15. END-OF-STUDY PAGES
+         ================================================================= */
+      function checkedValue(radioName) {
+        const choice = document.querySelector(
+          `input[name="${radioName}"]:checked`,
+        );
+        return choice ? choice.value : "";
+      }
+
+      el("finalSubmitBtn").addEventListener("click", () => {
+        q1Answer = el("q1Response").value;
+        q2Answer = el("q2Response").value;
+        hide("finalQuestionsPanel");
+        show("debriefPanel");
+      });
+
+      el("demographicsSubmitBtn").addEventListener("click", () => {
+        raceAnswer = checkedValue("raceChoice");
+        ethnicityAnswer = checkedValue("ethnicityChoice");
+        genderAnswer = checkedValue("genderChoice");
+        ageAnswer = el("ageResponse").value;
+
+        // Close a break that is still open, then fix the timing totals.
+        if (breakStartTs !== null) {
+          totalBreakMs += performance.now() - breakStartTs;
+          breakStartTs = null;
+        }
+        totalCompletionMs = performance.now() - experimentStartTime;
+        filteredCompletionMs = totalCompletionMs - totalBreakMs;
+
+        postDataToServer();
+        hide("debriefPanel");
+        show("thankYouPanel");
+      });
+
+      /* =================================================================
+         16. SAVING DATA TO GOOGLE SHEETS
+         Data are sent to a Google Apps Script web app after every trial.
+         The script must UPDATE the row with this rowKey if it exists
+         (otherwise add a new row), or every trial would add a new row.
+         "text/plain" is used on purpose: "application/json" makes the
+         browser send an extra check (CORS preflight) that Apps Script
+         does not handle. The script reads the body and parses the JSON.
+         ================================================================= */
+      const GOOGLE_SHEETS_WEBAPP_URL =
+        "https://script.google.com/macros/s/AKfycbwDu6kkF5FckAiYcnmyJqX6q9-NGRtf_PzV139o-JfLRI_KzbXi3VKPpPSYWOrkpmd2/exec";
+
+      function postDataToServer() {
+        // Accuracy is out of the checks actually answered so far
+        // (not out of all 8).
+        const acCorrect = attnCheckLog.reduce((sum, c) => sum + c.correct, 0);
+        const acTotal = attnCheckLog.length;
+        const acAccuracyPct = acTotal
+          ? Number(((acCorrect / acTotal) * 100).toFixed(1))
+          : "";
+
+        const data = {
+          rowKey,
+          prolificPID,
+          studyID,
+          sessionID,
+          blockOrder,
+          scrambledVersion,
+          versionSource,
+          participantNumber,
+          pseIntactMs: conditionPSE("intact"),
+          pseScrambledMs: conditionPSE("scrambled"),
+          staircaseSummary: staircaseSummary(),
+          trialLog,
+          attnCheckLog,
+          attentionCheckCorrect: acCorrect,
+          attentionCheckTotal: acTotal,
+          attentionCheckAccuracyPct: acAccuracyPct,
+          q1Answer,
+          q2Answer,
+          raceAnswer,
+          ethnicityAnswer,
+          genderAnswer,
+          ageAnswer,
+          totalCompletionMs,
+          totalBreakMs,
+          filteredCompletionMs,
+        };
+
+        fetch(GOOGLE_SHEETS_WEBAPP_URL, {
+          method: "POST",
+          headers: { "Content-Type": "text/plain;charset=utf-8" },
+          body: JSON.stringify(data),
+        })
+          .then(() => console.log("Data sent to Google Sheets."))
+          .catch((err) =>
+            // Apps Script can report an error here even when the row was
+            // saved. Check the sheet before assuming data were lost.
+            console.error("Failed to post data to Google Sheets:", err),
+          );
+      }
+
+      /* =================================================================
+         17. CSV DOWNLOAD (thank-you page)
+         ================================================================= */
+      // Formats milliseconds as m:ss.s (e.g. 12:05.3).
+      function msToClock(ms) {
+        if (ms === null || ms === undefined || isNaN(ms)) return "n/a";
+        const totalSeconds = ms / 1000;
+        const minutes = Math.floor(totalSeconds / 60);
+        const seconds = (totalSeconds % 60).toFixed(1);
+        return `${minutes}:${seconds.padStart(4, "0")}`;
+      }
+
+      el("downloadBtn").onclick = () => {
+        const header =
+          "trial,block,condition,scrambled_version,staircase,direction,delay_ms,response,response_key,step_ms,reversal,reversals_so_far,reaction_time_ms,response_duration_ms\n";
+        const rows = trialLog
+          .map(
+            (t) =>
+              `${t.trial},${t.block},${t.condition},${t.scrambled_version},${t.staircase},${t.direction},${t.delay_ms},${t.response},${t.response_key},${t.step_ms},${t.reversal},${t.reversals_so_far},${t.reaction_time_ms},${t.response_duration_ms}`,
+          )
+          .join("\n");
+
+        const acHeader =
+          "check_number,block,after_trial,question,participant_response,correct_response,correct,reaction_time_ms\n";
+        const acRows = attnCheckLog
+          .map(
+            (c) =>
+              `${c.check_number},${c.block},${c.after_trial},${c.question},${c.participant_response},${c.correct_response},${c.correct},${c.reaction_time_ms}`,
+          )
+          .join("\n");
+        const acCorrect = attnCheckLog.reduce((sum, c) => sum + c.correct, 0);
+        const acTotal = attnCheckLog.length;
+        const acPct = acTotal ? ((acCorrect / acTotal) * 100).toFixed(1) : "0";
+
+        const stHeader =
+          "condition,staircase,start_ms,trials,reversals,reversal_delays_ms,pse_ms\n";
+        const stRows = staircaseSummary()
+          .map(
+            (r) =>
+              `${r.condition},${r.staircase},${r.start_ms},${r.trials},${r.reversals},${r.reversal_delays_ms},${r.pse_ms}`,
+          )
+          .join("\n");
+
+        const timing =
+          `\n\nTotal completion time (ms): ${Math.round(totalCompletionMs)} (${msToClock(totalCompletionMs)})\n` +
+          `Total break time (ms): ${Math.round(totalBreakMs)} (${msToClock(totalBreakMs)})\n` +
+          `Filtered completion time, i.e. total minus break time (ms): ${Math.round(filteredCompletionMs)} (${msToClock(filteredCompletionMs)})\n`;
+
+        const summary =
+          `\n\nProlific PID: ${prolificPID}\n` +
+          `Study ID: ${studyID}\n` +
+          `Session ID: ${sessionID}\n\n` +
+          `Block order: ${blockOrder.join(" then ")}\n` +
+          `Scrambled face version: ${scrambledVersion} (${versionSource}; participant number: ${participantNumber})\n\n` +
+          `PSE intact (ms): ${conditionPSE("intact")}\n` +
+          `PSE scrambled (ms): ${conditionPSE("scrambled")}\n\n` +
+          `Staircases\n${stHeader}${stRows}\n\n` +
+          `Attention checks\n${acHeader}${acRows}\n\n` +
+          `Attention check accuracy: ${acCorrect}/${acTotal} (${acPct}%)\n\n` +
+          `What do you think the experiment was about?\n${q1Answer}\n\n` +
+          `What strategies did you use?\n${q2Answer}\n\n` +
+          `Race: ${raceAnswer}\n` +
+          `Ethnicity: ${ethnicityAnswer}\n` +
+          `Gender: ${genderAnswer}\n` +
+          `Age: ${ageAnswer}\n` +
+          timing;
+
+        const blob = new Blob([header + rows + summary], { type: "text/csv" });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = "exp1_temporal_staircase_QP_line_change_data.csv";
+        link.click();
+        URL.revokeObjectURL(url);
+      };
+
+      /* =================================================================
+         18. PROLIFIC REDIRECT (5-second countdown)
+         ================================================================= */
+      const PROLIFIC_CODE = "C8LZ2BG5";
+      const PROLIFIC_URL =
+        "https://app.prolific.com/submissions/complete?cc=" + PROLIFIC_CODE;
+
+      function startProlificRedirect() {
+        const endInstructions = el("endInstructions");
+        const prolificLink = el("prolific_link");
+        prolificLink.href = PROLIFIC_URL;
+        prolificLink.textContent = "Click here to return to Prolific";
+
+        let secondsLeft = 5;
+        function updateText() {
+          endInstructions.textContent =
+            "All done - thank you for participating!\r\n" +
+            "You should be redirected to Prolific in " +
+            secondsLeft +
+            " seconds." +
+            "\r\nIf you aren't automatically redirected, " +
+            "please click the link below.\r\n" +
+            "Your completion code is: " +
+            PROLIFIC_CODE;
+        }
+        updateText();
+
+        const countdown = setInterval(() => {
+          secondsLeft--;
+          updateText();
+          if (secondsLeft <= 0) {
+            clearInterval(countdown);
+            window.location = PROLIFIC_URL;
+          }
+        }, 1000);
+      }
+
+      el("thankYouContinueBtn").addEventListener("click", () => {
+        hide("thankYouPanel");
+        show("prolificPanel");
+        fullscreenRequired = false;
+        hideFullscreenReminder();
+        startProlificRedirect();
+      });
+
+      /* =================================================================
+         19. CONSENT, FULL SCREEN AND START
+         Page order: consent -> full-screen page -> instructions -> trials
+         ================================================================= */
+      const consentContinueBtn = el("consentContinueBtn");
+      document
+        .querySelectorAll('input[name="consentChoice"]')
+        .forEach((radio) =>
+          radio.addEventListener("change", () => {
+            consentContinueBtn.disabled = false;
+          }),
+        );
+
+      consentContinueBtn.addEventListener("click", () => {
+        const choice = checkedValue("consentChoice");
+        if (!choice) return;
+        hide("consentPage");
+        if (choice === "yes") {
+          show("fullscreenPage");
+        } else {
+          show("consentDeclinePage");
+        }
+      });
+
+      /* ---------- Automatic condition assignment ----------
+         When the participant clicks "Enter Full-Screen & Continue", we
+         ask the Google Apps Script for their participant number. The
+         script keeps one shared counter, so numbers go 1, 2, 3, ... in
+         the order participants click this button. Counting here (not at
+         consent) means someone who reopens the study in Chrome keeps
+         their place: the first, abandoned attempt never got a number.
+
+         The number sets two things:
+           scrambled version: 1 -> A, 2 -> B, 3 -> C, 4 -> A, ...
+           (D is only reachable with the testing button.)
+           first block:       odd -> scrambled, even -> intact
+         So every 6 participants cover all 6 combinations:
+           1: A + scrambled first    2: B + intact first
+           3: C + scrambled first    4: A + intact first
+           5: B + scrambled first    6: C + intact first
+
+         (This demo uses the Sep 28 sheet's script, which answers
+         "assignVersion" with a participant number; only the number is used.)
+
+         If the script cannot be reached within 8 seconds, both are chosen
+         at random instead (saved as "random_fallback"). */
+      function assignConditions() {
+        const button = el("enterFullscreenBtn");
+        button.disabled = true; // prevents a second click
+        button.textContent = "Loading...";
+
+        const fallbackTimer = setTimeout(() => {
+          finishAssignment("", "random_fallback");
+        }, 8000);
+
+        fetch(GOOGLE_SHEETS_WEBAPP_URL + "?action=assignVersion")
+          .then((response) => response.json())
+          .then((result) => {
+            clearTimeout(fallbackTimer);
+            finishAssignment(result.participantNumber, "server");
+          })
+          .catch(() => {
+            clearTimeout(fallbackTimer);
+            finishAssignment("", "random_fallback");
+          });
+      }
+
+      // Sets the conditions, then moves on to the instructions.
+      // Only the first answer counts (server reply or 8-second fallback).
+      function finishAssignment(number, source) {
+        if (blockOrder.length > 0) return; // already assigned
+
+        const n = Number(number);
+        let version;
+        if (source === "server" && n >= 1) {
+          versionSource = "server";
+          participantNumber = n;
+          version = ["A", "B", "C"][(n - 1) % 3];
+          setBlockOrder(n % 2 === 1 ? "scrambled" : "intact");
+        } else {
+          versionSource = "random_fallback";
+          participantNumber = "";
+          version = ["A", "B", "C"][Math.floor(Math.random() * 3)];
+          setBlockOrder(Math.random() < 0.5 ? "scrambled" : "intact");
+        }
+        chooseScrambledVersion(version); // also fills the instruction pictures
+
+        hide("fullscreenPage");
+        show("instructions");
+        show("startExperimentButtonWrap");
+        fullscreenRequired = true;
+      }
+
+      // Browsers only allow full screen after a click, so the button is the
+      // reliable way in. We also try once on load in case it is allowed.
+      function requestFS() {
+        const page = document.documentElement;
+        const request =
+          page.requestFullscreen ||
+          page.webkitRequestFullscreen ||
+          page.mozRequestFullScreen ||
+          page.msRequestFullscreen;
+        if (request) {
+          try {
+            request.call(page);
+          } catch (err) {
+            // Ignored: the button covers this case.
+          }
+        }
+      }
+      document.addEventListener("DOMContentLoaded", requestFS);
+      requestFS();
+
+      el("enterFullscreenBtn").addEventListener("click", () => {
+        requestFS();
+        assignConditions(); // shows the instructions when done
+      });
+
+      el("startExperimentBtn").addEventListener("click", () => {
+        hide("instructions");
+        hide("startExperimentButtonWrap");
+        showMainTrialPanel();
+        nextTrial();
+      });
+
+      // Leaving full screen during the study shows a reminder that blocks
+      // the page until the participant goes back to full screen.
+      function isFullscreen() {
+        return !!(
+          document.fullscreenElement ||
+          document.webkitFullscreenElement ||
+          document.mozFullScreenElement ||
+          document.msFullscreenElement
+        );
+      }
+      function showFullscreenReminder() {
+        onFullscreenReminder = true;
+        show("fullscreenReminderOverlay", "flex");
+      }
+      function hideFullscreenReminder() {
+        onFullscreenReminder = false;
+        hide("fullscreenReminderOverlay");
+      }
+      function handleFullscreenChange() {
+        if (!fullscreenRequired) return;
+        if (isFullscreen()) {
+          hideFullscreenReminder();
+        } else if (!onExitConfirm) {
+          // The end-study dialog already brings back full screen itself.
+          showFullscreenReminder();
+        }
+      }
+      [
+        "fullscreenchange",
+        "webkitfullscreenchange",
+        "mozfullscreenchange",
+        "MSFullscreenChange",
+      ].forEach((eventName) =>
+        document.addEventListener(eventName, handleFullscreenChange),
+      );
+      el("returnToFullscreenBtn").addEventListener("click", requestFS);
+
+      /* =================================================================
+         20. TESTING BUTTONS (bottom-right corner) — for piloting only
+         Skip, Attention Check, and A / B / C / D (overrides the automatically
+         assigned scrambled face version; saved as "manual_button")
+         ================================================================= */
+      // Hides every page and overlay and stops any running trial.
+      function clearScreenForJump() {
+        // Forget any answer key still held, so its release does nothing.
+        heldKey = null;
+        heldKeyDownTs = null;
+        heldKeyTrial = null;
+        heldKeyCheckNext = false;
+        if (onBreak) hidePauseOverlay();
+        if (onExitConfirm) hideExitConfirmOverlay();
+        stopAnimation();
+        phase = "idle";
+        hide("fullscreenPage");
+        hide("instructions");
+        hide("startExperimentButtonWrap");
+        hide("attentionCheckPanel");
+      }
+
+      // SKIP: jumps to the next block's break screen; after the last block,
+      // to the end-of-study questions; then through the remaining pages.
+      // (Skipped trials are simply not run; the staircases keep their
+      // place and continue in that condition's next block.)
+      el("skipBtn").addEventListener("click", () => {
+        if (blockOrder.length === 0) return; // conditions not assigned yet
+        if (
+          isShown("consentPage") ||
+          isShown("thankYouPanel") ||
+          isShown("prolificPanel")
+        ) {
+          return;
+        }
+        if (isShown("finalQuestionsPanel")) {
+          hide("finalQuestionsPanel");
+          show("debriefPanel");
+          return;
+        }
+        if (isShown("debriefPanel")) {
+          postDataToServer();
+          hide("debriefPanel");
+          show("thankYouPanel");
+          return;
+        }
+
+        clearScreenForJump();
+        hide("blockBreakPanel");
+
+        currentBlock++;
+        trialsInBlock = 0;
+        if (currentBlock <= TOTAL_BLOCKS) {
+          showBlockBreak(currentBlock, nextTrial);
+        } else {
+          finishExperiment();
+        }
+      });
+
+      // ATTENTION CHECK: asks an attention-check question right away about
+      // the last trial shown, then carries on with a new trial.
+      el("attentionCheckBtn").addEventListener("click", () => {
+        if (!activeTrial) return; // no trial shown yet
+
+        clearScreenForJump();
+        hide("blockBreakPanel");
+        hide("finalQuestionsPanel");
+        hide("debriefPanel");
+        hide("thankYouPanel");
+        hide("prolificPanel");
+
+        runAttentionCheck(
+          activeTrial,
+          trialLog.length,
+          nextAttentionQuestion(),
+          nextTrial,
+        );
+      });
+
+      // Sets the scrambled face version and updates everything on screen.
+      // Used by the automatic assignment and by the A / B / C / D buttons.
+      function chooseScrambledVersion(version) {
+        scrambledVersion = version;
+        for (const v of ["A", "B", "C", "D"]) {
+          el("versionBtn" + v).classList.toggle("selected", v === version);
+        }
+        // Update the instruction pictures and the frame on screen.
+        if (blockOrder.length > 0) fillInstructionPictures("block1", blockOrder[0]);
+        if (breakCondition) fillInstructionPictures("blockBreak", breakCondition);
+        if (phase === "waitingKeypress") {
+          prepareTrial(anim.trial); // redraws (and, for D, makes a new layout)
+        }
+      }
+      for (const v of ["A", "B", "C", "D"]) {
+        // Testing only: a button press overrides the automatic version.
+        el("versionBtn" + v).addEventListener("click", () => {
+          if (blockOrder.length === 0) return; // conditions not assigned yet
+          versionSource = "manual_button";
+          chooseScrambledVersion(v);
+        });
+      }
+    </script>
+  </body>
+</html>
